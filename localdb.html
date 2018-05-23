@@ -1,6 +1,7 @@
 <html>
 <head>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="main.js"></script>
 	<style>
 		body {margin: 0;}
 		.links a {cursor: pointer; padding: 0 5px; margin: 0; font-family: sans-serif; font-size: 12px;}
@@ -59,8 +60,11 @@
 			<a class="edit" style="display:none" onclick="page.showEdit()">edit</a>
 			<a class="new" style="display:none" onclick="page.showNew()">new</a>
 			<a class="back" onclick="page.backPage()">back</a>
+			<a class="debug" onclick="Page.Page.showDebug()">debug</a>
 		</div>
 	</div>
+
+	<div id="page-area" style="position:relative;top:20px"></div>
 
 	<div class="page-wrapper">
 
@@ -241,6 +245,13 @@ let page = {
 	pageIds: [],
 	activePage: '',
 
+	init: function() {
+		this.pageIds = $.map(
+			$('.page'),
+			function(c){ return c.classList[1]; }
+		);
+	},
+	
 	generateLastLink: function(){
 		if(page.pageStack.length===0){ return; }
 		let entry = page.pageStack[page.pageStack.length-1];
@@ -504,12 +515,6 @@ let page = {
 		},
 	},
 
-	init: function() {
-		this.pageIds = $.map(
-			$('.page'),
-			function(c){ return c.classList[1]; }
-		);
-	},
 	backPage: function() {
 		if(page.pageStack.length === 0){ return; }
 		if(page.pageStack.length > 1){ page.pageStack.pop(); }

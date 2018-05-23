@@ -1,0 +1,7 @@
+{
+	"compilerOptions": {
+		"target": "es6",
+		"outFile":"main.js"
+	},
+	"files": ["model.ts","page.ts"]
+}
