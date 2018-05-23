@@ -1,0 +1,713 @@
+<html>
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<style>
+		body {margin: 0;}
+		.links a {cursor: pointer; padding: 0 5px; margin: 0; font-family: sans-serif; font-size: 12px;}
+		.links a.active {background: #cdf;}
+		.links a:hover {color: white; background: #4444aa;}
+		.page {display: none; padding-top: 20px;}
+		.menu {position: fixed; z-index: 5; background: white;}
+		input.url {
+			width: 500px;
+		}
+		#subjects tr:hover {
+			background: #cdf;
+		}
+		div.thumb {
+			width: 80px; height: 80px;
+			overflow: hidden;
+		}
+		.gallery-thumb {
+			max-height: 80px;
+			border: 1px solid white;
+		}
+		.gallery-thumb:hover { cursor: pointer; border: 1px solid black; }
+		.subject-view>div {margin: 10px;}
+		#subject-view-sites ul {
+			list-style-type: none;
+			margin: 0;
+			padding: 0;
+		}
+		#subject-view-sites a {text-decoration: none;}
+		#subject-view-sites a:hover {text-decoration: underline;}
+		#subject-view-vids img {max-width:100px;}
+		.subject-thumb-name {
+			display:inline-block;
+			text-align:center;
+			position:relative;
+			top:-14px;
+			background:gray;
+			color:white;
+			font-family:sans-serif;
+			font-size:12px;
+			padding:0 1px;
+		}
+		div.thumb:hover div.subject-thumb-name {
+			background:black;
+		}
+		div.subject-row { display: inline-block; }
+	</style>
+</head>
+<body>
+
+	<div class="menu">
+		<div class="links">
+			<a class="pic-list" onclick="page.showPicList()">list</a>
+			<a class="pic-new" onclick="page.showPicNew()">pic</a>
+			<a class="subject-list" onclick="page.showPage({call:'showSubjectList',args:null})">subjects</a>
+			<a class="edit" style="display:none" onclick="page.showEdit()">edit</a>
+			<a class="new" style="display:none" onclick="page.showNew()">new</a>
+			<a class="back" onclick="page.backPage()">back</a>
+		</div>
+	</div>
+
+	<div class="page-wrapper">
+
+		<div class="page pic-list">
+			<div id="thumbs"></div>
+		</div>
+
+		<div class="page pic-new">
+			<div id='pic-new-subject-menu'></div>
+			<div>
+				<input id='url' class='url' placeholder='URL' onclick='page.picNewPage.onClickInput(this,event);' />
+			</div>
+			<button onclick="page.picNewPage.submit()">
+				Submit
+			</button>
+		</div>
+
+		<div class="page pic-edit">
+			<div>
+				<span>thumbnail</span>
+				<div id="thumbnail"></div>
+				<table>
+					<tr><td colspan=2>position and size</td></tr>
+					<tr>
+						<td>move x</td>
+						<td><input type='number' id='marginx' oninput='page.picEditPage.changeMarginX(this)'/></td>
+					</tr>
+					<tr>
+						<td>move y</td>
+						<td><input type='number' id='marginy' oninput='page.picEditPage.changeMarginY(this)'/></td>
+					</tr>
+					<tr>
+						<td>width</td>
+						<td><input type='number' id='maxwidth' oninput='page.picEditPage.changeMaxWidth(this)'/></td>
+					</tr>
+				</table>
+			</div>
+			<div>
+				<span id='subject-name'></span>
+				<button onclick='page.picEditPage.onClickSubject()'>Change Subject</button>
+			</div>
+			<button onclick='Pic.store()'>Save</button>
+		</div>
+
+		<div class="page pic-view"></div>
+
+		<div class="page subject-new">
+			<div><input type="text" id="subject-name-input" placeholder='name'></div>
+			<div><input type="text" class="url" id="subject-site-input" placeholder='site url'></div>
+			<button onclick="page.subjectNewPage.submit()">Submit</button>
+		</div>
+
+		<div class="page subject-list">
+			<div id="subjects"></div>
+		</div>
+
+		<div class="page subject-view">
+			<div class="name"></div>
+			<div class="thumb"></div>
+			<div>
+				<button onclick="page.subjectViewPage.onClickPics()">Pic Gallery</button>
+			</div>
+			<div>
+				<button onclick="page.subjectViewPage.onClickNewPic()">New Pic</button>
+				<button onclick="page.subjectViewPage.onClickSetThumb()">Set Thumb</button>
+			</div>
+			<div>
+				<input type='text' id='new-site-input' placeholder='addSite'/>
+				<button onclick='page.subjectViewPage.onClickAddSite()'>add site</button>
+			</div>
+			<div>
+				<div>
+					<input type='text' id='new-vid-input' placeholder='vid url'/>
+					<input type='text' id='new-vid-thumb-input' placeholder='vid thumb url'/>
+					<button onclick='page.subjectViewPage.onClickAddVid()'>add vid</button>
+				</div>
+				<div id="subject-view-vids"></div>
+			</div>
+			<div id="subject-view-sites"></div>
+		</div>
+
+		<div class="page subject-edit">
+		</div>
+
+	</div>
+</body>
+<script>
+
+// localStorage getItem setItem removeItem
+// shortcut: localStorage.lastName
+let db = {
+	newId: function(){
+		let toc;
+		let jtoc = localStorage.getItem('toc');
+		if(jtoc){
+			toc = JSON.parse(jtoc);
+		} else { toc = this.initToc(); }
+		toc.lastId += 1;
+		toc.ids.push(toc.lastId);
+		jtoc = JSON.stringify(toc);
+		localStorage.setItem('toc', jtoc);
+		return toc.lastId;
+	},
+	initToc: function(){
+		let toc = {
+			lastId: 0,
+			ids: [],
+		};
+		jtoc = JSON.stringify(toc);
+		localStorage.setItem('toc', jtoc);
+		return toc;
+	},
+	newEntry: function(content){
+		content.id = this.newId();
+		localStorage.setItem(content.id, JSON.stringify(content));
+		return content;
+	},
+	getEntry: function(id){
+		let entry = localStorage.getItem(id);
+		if(entry){ return JSON.parse(entry); }
+		else { return null; }
+	},
+	getEntriesOfType: function(type){
+		let toc = this.getToc();
+		let result = [];
+		for(let id of toc.ids){
+			let entry = this.getEntry(id);
+			if(entry.type === type){
+				result.push(entry);
+			}
+		}
+		return result;
+	},
+	getToc: function(){
+		let toc = localStorage.toc;
+		if(toc){ return JSON.parse(toc); }
+		else { return this.initToc(); }
+	},
+	query: function(q){
+		let toc = this.getToc();
+		let result = [];
+		for(let id of toc.ids){
+			let entry = this.getEntry(id);
+			let ok = true;
+			for(let key of Object.keys(q)){
+				if(entry[key] !== q[key]){
+					ok = false;
+					break;
+				}
+			}
+			if(ok){ result.push(entry); }
+		}
+		return result;
+	},
+	updateEntry: function(content){
+		localStorage.setItem(content.id, JSON.stringify(content));
+		return content;
+	},
+	remove: function(id){
+		localStorage.removeItem(id);
+		let toc = this.getToc();
+		toc.ids.splice(toc.ids.indexOf(id),1);
+		let jtoc = JSON.stringify(toc);
+		localStorage.setItem('toc',jtoc);
+	},
+	store: function(content){
+		if(content.hasOwnProperty('id')){
+			return this.updateEntry(content);
+		}
+		else {
+			return this.newEntry(content);
+		}
+	},
+};
+
+let page = {
+	pageStack: [],
+	pageIds: [],
+	activePage: '',
+
+	generateLastLink: function(){
+		if(page.pageStack.length===0){ return; }
+		let entry = page.pageStack[page.pageStack.length-1];
+		let markup = '<a onclick="page.'+entry.call+'('+entry.param+')">'+entry.display+'</a>';
+		$('last-page').html(markup);
+	},
+	pushPage: function(entry){
+		this.pageStack.push(entry);
+		this.generateLastLink();
+	},
+	popPage: function(){},
+
+	picEditPage: {
+		picId: 0,
+
+		init: function() {
+			this.picId = Pic.data.id;
+			let markup = Pic.createThumb();
+			$('.page.pic-edit #thumbnail').html(markup);
+			if(Pic.data.hasOwnProperty('marginx')){
+				$('#marginx').val(Pic.data.marginx);
+			}
+			else {
+				$('#marginx').val(0);
+			}
+			if(Pic.data.hasOwnProperty('marginy')){
+				$('#marginy').val(Pic.data.marginy);
+			}
+			else {
+				$('#marginy').val(0);
+			}
+			if(Pic.data.hasOwnProperty('maxwidth')){
+				$('#maxwidth').val(Pic.data.maxwidth);
+			}
+			else {
+				$('#maxwidth').val(120);
+			}
+			if(Pic.data.hasOwnProperty('subject') && Pic.data.subject){
+				Subject.read(Pic.data.subject);
+				$('#subject-name').html(Subject.data.name);
+			}
+			else{ $('#subject-name').html(''); }
+		},
+		changeMarginX: function(elem){
+			Pic.data.marginx = elem.value;
+			$('.page.pic-edit #thumbnail').html(Pic.createThumb());
+		},
+		changeMarginY: function(elem){
+			Pic.data.marginy = elem.value;
+			$('.page.pic-edit #thumbnail').html(Pic.createThumb());
+		},
+		changeMaxWidth: function(elem){
+			Pic.data.maxwidth = elem.value;
+			$('.page.pic-edit #thumbnail').html(Pic.createThumb());
+		},
+		onClickSubject: function(){
+			Pic.selectingSubject = true;
+			page.showSubjectList();
+		},
+	},
+
+	picListPage: {
+		entries: [],
+
+		createGallery: function(query) {
+			let markup = '';
+			if(query){ this.entries = db.query(query); }
+			else{ this.entries = db.getEntriesOfType('pic'); }
+			for(let entry of this.entries){
+				Pic.read(entry.id);
+				markup += '<div style="display:inline-block"><a onclick="page.picListPage.onClickThumb(' + Pic.data.id + ')">';
+				// markup += Pic.createThumb();
+
+				markup += '<img src="'+Pic.data.url+'" class="gallery-thumb">';;
+
+				markup += '</a></div>';
+			}
+			$('#thumbs').html(markup);
+		},
+		onClickThumb: function(id) {
+			// page.pushPage({call:'showPicList', param:'{type:\'pic\', subject:Subject.data.id}', display:'gallery'});
+
+			if(page.subjectViewPage.settingThumb){
+				page.subjectViewPage.settingThumb = false;
+				Subject.data.thumb = id;
+				Subject.store();
+				page.showSubjectView(Subject.data.id);
+			}
+			else{
+				// page.showPicView(id);
+
+				page.showPage({call:'showPicView',args:id});
+			}
+		},
+	},
+
+	picNewPage: {
+		init: function() {
+			$('#pic-new-subject-menu').html(Subject.generateMenu());
+			if(Subject.data){
+				$('#subject-menu').val(Subject.data.id);
+			}
+			let clip = window.clipboardData;
+		},
+		submit: function() {
+			let url = $('#url')[0].value;
+			$('#url')[0].value = '';
+			Pic.create(url);
+			let subjectid = $('#subject-menu').val();
+			if(subjectid){
+				Pic.data.subject = parseInt(subjectid);
+			}
+			Pic.store();
+			page.show('menu');
+		},
+		onClickInput: function(thing,event){
+		},
+	},
+
+	picViewPage: {
+		init: function(picid){
+			Pic.read(picid);
+			let markup = '<img src="'+Pic.data.url+'" onclick="page.picViewPage.onClickImage('+picid+')">';
+			$('.pic-view').html(markup);
+		},
+		onClickImage(picid){
+			let entries = page.picListPage.entries;
+			for(let i in entries){
+				let index = parseInt(i);
+				let entry = entries[index];
+				if(entry.id !== picid){ continue; }
+				newImgId = entries[0].id;
+				if(index < entries.length-1){
+					newImgId = entries[index+1].id;
+				}
+				page.showPicView(newImgId);
+
+			}
+		},
+	},
+
+	subjectListPage: {
+		clickRow: function(id) {
+
+			if(Pic.selectingSubject){
+				Pic.read(page.picEditPage.picId);
+				Pic.setSubject(id);
+				Pic.store();
+				Pic.selectingSubject = false;
+
+				page.showPicView(Pic.data.id);
+			}
+			else {
+				page.showPage({call:"showSubjectView", args:id});
+				// page.showSubjectView(id);
+			}
+		},
+		createRow: function(subjectData) {
+			let markup = '<div class="subject-row" ';
+			markup += 'onclick="page.subjectListPage.clickRow('+subjectData.id+')">';
+
+			if(subjectData.thumb){
+				Pic.read(subjectData.thumb);
+				markup += Pic.createThumb();
+			}
+
+			markup += '<div class="subject-thumb-name">'+subjectData.name.split(' ')[0]+'</div>';
+
+			markup += '</div>';
+
+			return markup;
+		},
+		createList: function() {
+			let subjects = db.getEntriesOfType('subject');
+			let markup = '';
+			for(subject of subjects){
+				markup += this.createRow(subject);
+			}
+			$('#subjects').html(markup);
+		},
+	},
+
+	subjectNewPage: {
+		submit: function() {
+			let name = $('#subject-name-input')[0].value;
+			$('#subject-name-input')[0].value = '';
+			Subject.create(name,null);
+			Subject.store();
+			let site = $('#subject-site-input')[0].value;
+			if(site){
+				$('#subject-site-input')[0].value = '';
+				Subject.addSite(site);
+			}
+			Subject.store();
+		},
+	},
+
+	subjectViewPage: {
+		// data: null,
+		settingThumb: false,
+
+		init: function(id) {
+			Subject.read(id);
+			$('.subject-view .name').html(Subject.data.name);
+			if(Subject.data.thumb){
+				Pic.read(Subject.data.thumb);
+				$('.subject-view .thumb').html(Pic.createThumb());
+			}
+			else {
+				$('.subject-view .thumb').html('');
+			}
+			// subject-view-vids
+			let vids = db.query({type:'vid', subject:Subject.data.id});
+			let vidmarkup = '';
+			for(let vid of vids){
+				vidmarkup += '<a target="_blank" href="'+vid.url+'"><img src="'+vid.thumburl+'"></a>';
+			}
+			$('#subject-view-vids').html(vidmarkup);
+			// list subject sites
+			// subject-view-sites
+			let sites = db.query({type:'site', subject:Subject.data.id});
+			let markup = '<ul>';
+			for(let site of sites){
+				markup += '<li><a target="_blank" href="'+site.url+'">'+site.url+'</a></li>';
+			}
+			markup += '</ul>';
+			$('#subject-view-sites').html(markup);
+		},
+		onClickAddSite: function() {
+			let sitehtml = $('#new-site-input').val();
+			Site.create('site',sitehtml);
+			Site.setSubject(Subject.data.id);
+
+			Site.store();
+			page.subjectViewPage.init(Subject.data.id);
+		},
+		onClickAddVid: function(){
+			let url = $('#new-vid-input').val();
+			$('#new-vid-input').val('');
+			let thumburl = $('#new-vid-thumb-input').val();
+			$('#new-vid-thumb-input').val('');
+			Vid.create(url,thumburl);
+			Vid.addSubject(Subject.data.id);
+			Vid.store();
+			page.subjectViewPage.init(Subject.data.id);
+		},
+		onClickPics: function() {
+			page.showPage({call:'showPicList', args:{type:'pic', subject:Subject.data.id}});
+			// page.pushPage({call:'showSubjectView', param:Subject.data.id, display:'subject'});
+
+			// let query = {type:'pic', subject:Subject.data.id};
+			// page.showPicList(query);
+		},
+		onClickNewPic: function() {
+			page.showPicNew();
+		},
+		onClickSetThumb: function() {
+			this.settingThumb = true;
+			let query = {type:'pic', subject:Subject.data.id};
+			page.showPicList(query);
+		},
+	},
+
+	init: function() {
+		this.pageIds = $.map(
+			$('.page'),
+			function(c){ return c.classList[1]; }
+		);
+	},
+	backPage: function() {
+		if(page.pageStack.length === 0){ return; }
+		if(page.pageStack.length > 1){ page.pageStack.pop(); }
+		let params = page.pageStack[page.pageStack.length-1];
+		// page.showPage(params);
+		page[params.call](params.args);
+
+	},
+	showPage: function(params) {
+
+		// params: {call:"showPicList", args:any}
+		page.pageStack.push(params);
+
+		page[params.call](params.args);
+	},
+	showPicList: function(query) {
+		this.picListPage.createGallery(query);
+		this.show('pic-list');
+	},
+	showPicNew: function() {
+		page.picNewPage.init();
+		this.show('pic-new');
+	},
+	showPicEdit: function() {
+		page.picEditPage.init();
+		this.show('pic-edit');
+	},
+	showPicView: function(picid) {
+		page.picViewPage.init(picid);
+		this.show('pic-view');
+	},
+	showSubjectList: function() {
+		page.subjectListPage.createList();
+		this.show('subject-list');
+	},
+	showSubjectNew: function() {
+		this.show('subject-new');
+	},
+	showSubjectView: function(id) {
+		id = parseInt(id);
+		page.subjectViewPage.init(id);
+		this.show('subject-view');
+	},
+	showEditLink: function(on) {
+		if(on){ $('a.edit').show(); }
+		else{ $('a.edit').hide(); }
+	},
+	showNewLink: function(on) {
+		if(on){ $('a.new').show(); }
+		else{ $('a.new').hide(); }
+	},
+	showEdit: function() {
+		// shows a different edit form
+		// depending on what type of object is showing
+		if(page.activePage === 'pic-view'){
+			page.showPicEdit();
+		}
+	},
+	showNew: function() {
+		// new what? depends on the active page
+		if(page.activePage === 'subject-list'){
+			page.showSubjectNew();
+		}
+	},
+	show: function(pageid) {
+		if(pageid.split('-')[1]==='view'){ this.showEditLink(true); }
+		else{ this.showEditLink(false); }
+
+		if(pageid.split('-')[1]==='list'){ this.showNewLink(true); }
+		else{ this.showNewLink(false); }
+		
+		if(this.pageIds.indexOf(pageid) !== -1){
+			if(this.activePage !== ''){
+				$('a.'+this.activePage).removeClass('active');
+				$('div.page.'+this.activePage).hide();
+			}
+			this.activePage = pageid;
+			$('a.'+this.activePage).addClass('active');
+			$('div.page.'+this.activePage).show();
+		}
+		else{
+			console.log('page',pageid,'not found');
+			return;
+		}
+	},
+};
+
+let Site = {
+	data: {},
+	create: function(name, url){
+		let existing = db.query({type:'site', url:url});
+		if(existing.length>0){
+			this.data = existing[0];
+			this.data.name = name;
+		}
+		else{
+			this.data = { type:'site', name:name, url:url, subject:null };
+		}
+	},
+	setSubject: function(id){ this.data.subject = id; },
+	read: function(id){ this.data = db.getEntry(id); },
+	store: function(){ this.data = db.store(this.data); },
+};
+
+let Pic = {
+	data: {},
+	creatingSubject: false,
+	selectingSubject: false,
+
+	create: function(url){
+		this.data = {
+			type: 'pic',
+			url: url,
+		};
+	},
+	createThumb: function() {
+		let thumb = '';
+
+		thumb += '<div class="thumb">';
+		thumb += '<img src="'+Pic.data.url+'"';
+		thumb += ' style="';
+		if(Pic.data.hasOwnProperty('marginx')){
+			thumb += ' margin-left: ' + Pic.data.marginx + ';';
+		}
+		if(Pic.data.hasOwnProperty('marginy')){
+			thumb += ' margin-top: ' + Pic.data.marginy + ';';
+		}
+		if(Pic.data.hasOwnProperty('maxwidth')){
+			thumb += ' max-width:' + Pic.data.maxwidth + ';'
+		}
+		else{
+			thumb += ' max-width:' + 120 + ';'
+		}
+		thumb += '"';
+		thumb += '>';
+
+		thumb += "</div>";
+		return thumb;
+	},
+	read: function(id){ this.data = db.getEntry(id); },
+	setSubject: function(id){
+		this.data.subject = id;
+	},
+	store: function(){ this.data = db.store(this.data); },
+};
+
+let Subject = {
+	data: {},
+	addSite: function(url) {
+
+		Site.create('site', url);
+		Site.setSubject(this.data.id);
+		Site.store();
+	},
+	create: function(name, thumbid){
+		this.data = {
+			type: 'subject',
+			name: name,
+			thumb: thumbid,
+		};
+	},
+	generateMenu: function() {
+		let subjectData = db.getEntriesOfType('subject');
+		let markup = '<select id="subject-menu">';
+		markup += '<option value="">no subject</option>';
+		for(let datum of subjectData){
+			markup += '<option value="'+datum.id+'">'+datum.name+'</option>';
+		}
+		markup += '</subject>';
+		return markup;
+	},
+	read: function(id){
+		this.data = db.getEntry(id);
+	},
+	store: function(){
+		this.data = db.store(this.data);
+		if(Pic.creatingSubject){
+			Pic.setSubject(this.data.id);
+			Pic.store();
+			Pic.creatingSubject = false;
+		}
+	},
+};
+
+let Vid = {
+	data: {},
+	create: function(url,thumburl){
+		this.data = {type:'vid',url:url, thumburl:thumburl, subject:null};
+	},
+	addSubject: function(id){
+		this.data.subject = id;
+	},
+	store: function(){
+		this.data = db.store(this.data);
+	},
+};
+
+page.init();
+
+</script>
+</html>
