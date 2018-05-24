@@ -12,10 +12,31 @@ namespace Model {
 			return toc;
 		}
 
+		static initSubjectTags(): any {
+			let tags = [];
+			let jtags = JSON.stringify(tags);
+			localStorage.setItem('subjectTags', jtags);
+			return tags;
+		}
+
+		static newSubjectTag(tagname): void {
+			let tags = Data.subjectTags;
+			if (tags.indexOf(tagname) === -1) {
+				tags.push(tagname);
+				localStorage.setItem('subjectTags', JSON.stringify(tags));
+			}
+		}
+
 		static get toc(): any {
 			let toc = localStorage.toc;
 			if(toc){ return JSON.parse(toc); }
 			else { return this.initToc(); }
+		}
+
+		static get subjectTags(): any {
+			let tags = localStorage.subjectTags;
+			if (tags) { return JSON.parse(tags); }
+			else { return this.initSubjectTags(); }
 		}
 
 		static get entryTypes(): string[] {
@@ -51,10 +72,15 @@ namespace Model {
 		}
 
 		static store(content){
+			console.log('Model.Data.store',content);
+			console.log('content.id',content.id);
+			console.log('content.name',content.name);
 			if(content.hasOwnProperty('id')){
+				console.log('updateEntry');
 				return Data.updateEntry(content);
 			}
 			else {
+				console.log('newEntry');
 				return Data.newEntry(content);
 			}
 		}
@@ -79,22 +105,74 @@ namespace Model {
 			localStorage.setItem(content.id, JSON.stringify(content));
 			return content;
 		}
+		static removeEntry(id) {
+			localStorage.removeItem(id);
+			let toc = this.toc;
+			toc.ids.splice(toc.ids.indexOf(id),1);
+			let jtoc = JSON.stringify(toc);
+			localStorage.setItem('toc',jtoc);
+		}
 	}
 
 	export class Picture {
 		public type = 'pic';
 		public id:number;
 		public url: string;
+		public subjectid: number;
 
 		constructor(url:string) {
 			this.url = url;
 		}
 
+		store(): void {
+			let data = Model.Data.store( {type: 'pic', url: this.url, subject: this.subjectid} );
+			this.id = data.id;
+		}
+		
 		static read(id:number): Picture {
 			let data = Model.Data.getEntry(id);
 			let pic = new Picture(data.url);
 			pic.id = data.id;
 			return pic;
+		}
+
+	}
+
+	export class Subject {
+		public type = 'subject';
+		public thumb: number;
+		public id: number;
+		public visited: Date;
+		public tags: string[] = [];
+
+		constructor(public name: string) {}
+
+		static read(id: number): Subject {
+			let data = Model.Data.getEntry(id);
+			let subject = new Subject(data.name);
+			subject.thumb = data.thumb;
+			subject.id = data.id;
+			if (data.hasOwnProperty('visited')) {
+				subject.visited = new Date(data.visited);
+			}
+			if (data.hasOwnProperty('tags')) {
+				subject.tags = data.tags;
+			}
+			return subject;
+		}
+
+		store(): void {
+			this.visited = new Date();
+			let content = {
+				type: this.type,
+				name: this.name,
+				thumb: this.thumb,
+				visited: this.visited.toJSON(),
+				tags: this.tags,
+			};
+			if (this.id) { content['id'] = this.id; }
+			let response = Model.Data.store(content);
+			this.id = response.id;
 		}
 	}
 }

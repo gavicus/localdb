@@ -48,6 +48,22 @@
 			background:black;
 		}
 		div.subject-row { display: inline-block; }
+		.tooltip .tooltiptext {
+			visibility: hidden;
+			background-color: #eeb;
+			color: #000000;
+			border: 1px solid gray;
+			text-align: center;
+			padding: 0 1px;
+			position: relative;
+			top: -16px;
+			left: 2px;
+			z-index: 1;
+			font: 11px sans-serif;
+		}
+		.tooltip:hover .tooltiptext {
+			visibility: visible;
+		}
 	</style>
 </head>
 <body>
