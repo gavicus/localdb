@@ -1,5 +1,5 @@
 namespace Page {
-	enum Pages {ConfirmRemoveSubject,Debug,EditImage,Gallery,Image,NewPic,NewSubject,NewSubjectTag,Subject,Subjects};
+	enum Pages {ConfirmRemoveSubject,Debug,EditImage,Gallery,Image,NewPic,NewSubject,NewSubjectTag,Subject,SubjectFilter,Subjects};
 
 	export class Page {
 		static pageName: Pages = Pages.Debug;
@@ -14,6 +14,7 @@ namespace Page {
 		static showEditImage() { EditImage.render(); }
 		static showConfirmRemoveSubject() { ConfirmRemoveSubject.render() }
 		static showNewSubjectTag() { NewSubjectTag.render() }
+		static showSubjectFilter() { SubjectFilter.render() }
 
 		static render(markup) {
 			let menu = Page.generateMenu();
@@ -23,7 +24,10 @@ namespace Page {
 		static generateMenu() {
 			let links = "";
 			let names = ['Debug','Subjects'];
-			if (Page.pageName === Pages.Subjects) { names.push('NewSubject'); }
+			if (Page.pageName === Pages.Subjects) {
+				names.push('NewSubject');
+				names.push('SubjectFilter');
+			}
 			if (Page.pageName === Pages.Image) { names.push('EditImage'); }
 			for (let name of names) {
 				links += Page.generateElement('a',name,{onclick:'Page.Page.show'+name+'()'});
@@ -47,6 +51,13 @@ namespace Page {
 			}
 
 			return markup;
+		}
+
+		static generateCheckbox(name, attribs, checked) {
+			let attributes = {...attribs, type:'checkbox'};
+			if (checked) { attributes['checked'] = true; }
+			let input = Page.generateElement('input',null,attributes);
+			return Page.generateElement('label',input+name);
 		}
 
 		static generateMenuOptions(names) {
@@ -235,6 +246,51 @@ namespace Page {
 		}
 	}
 
+	export class NewPic {
+		static render() {
+			Page.pageName = Pages.NewPic;
+			
+			let markup = "";
+			markup += Page.generateElement('input',null,{placeholder:'image url',id:'image-url'},{wrap:{}});
+			markup += Page.generateElement('button','submit',{onclick:'Page.NewPic.onSubmit()'},{wrap:{}});
+			Page.render(markup);
+		}
+		static onSubmit() {
+			let input:HTMLInputElement = <HTMLInputElement>document.getElementById('image-url');
+			let url = input.value;
+			let pic = new Model.Picture(url);
+			pic.subjectid = Subject.id;
+			pic.store();
+			input.value = '';
+		}
+	}
+
+	export class NewSubject {
+		static render() {
+			Page.pageName = Pages.NewSubject;
+			let markup = Page.generateElement(
+				'input', null, {placeholder:'Subject Name', id:'subject-name'}, {wrap:{}}
+			);
+			markup += Page.generateElement(
+				'button', 'submit', {onclick:'Page.NewSubject.onSubmit()'}
+			);
+			markup += Page.generateElement(
+				'button', 'cancel', {onclick:'Page.NewSubject.onCancel()'}
+			);
+			Page.render(markup);
+		}
+		static onSubmit() {
+			let element = <HTMLInputElement>document.getElementById('subject-name');
+			let name = element.value;
+			let subject = new Model.Subject(name);
+			subject.store();
+			Page.showSubject(subject.id);
+		}
+		static onCancel() {
+			Page.showSubjects();
+		}
+	}
+
 	export class NewSubjectTag {
 		static render() {
 			Page.pageName = Pages.NewSubjectTag;
@@ -321,48 +377,45 @@ namespace Page {
 		}
 	}
 
-	export class NewPic {
-		static render() {
-			Page.pageName = Pages.NewPic;
-			
-			let markup = "";
-			markup += Page.generateElement('input',null,{placeholder:'image url',id:'image-url'},{wrap:{}});
-			markup += Page.generateElement('button','submit',{onclick:'Page.NewPic.onSubmit()'},{wrap:{}});
-			Page.render(markup);
-		}
-		static onSubmit() {
-			let input:HTMLInputElement = <HTMLInputElement>document.getElementById('image-url');
-			let url = input.value;
-			let pic = new Model.Picture(url);
-			pic.subjectid = Subject.id;
-			pic.store();
-			input.value = '';
-		}
-	}
+	export class SubjectFilter {
+		static filterOn = false;
+		static toggles: any;
 
-	export class NewSubject {
 		static render() {
-			Page.pageName = Pages.NewSubject;
-			let markup = Page.generateElement(
-				'input', null, {placeholder:'Subject Name', id:'subject-name'}, {wrap:{}}
-			);
-			markup += Page.generateElement(
-				'button', 'submit', {onclick:'Page.NewSubject.onSubmit()'}
-			);
-			markup += Page.generateElement(
-				'button', 'cancel', {onclick:'Page.NewSubject.onCancel()'}
-			);
+			Page.pageName = Pages.SubjectFilter;
+			if (!SubjectFilter.toggles) { SubjectFilter.updateToggles(); }
+			let markup = Page.generateElement('div','subject filter');
+			markup += Page.generateCheckbox('filter on', {
+				name:'filterOn',id:'filterOn',onclick:'Page.SubjectFilter.onCheckbox()'
+			}, SubjectFilter.filterOn);
+			let toggles = Object.keys(SubjectFilter.toggles).sort();
+			for (let toggle of toggles) {
+				markup += Page.generateCheckbox(
+					toggle, {
+						name:toggle,onclick:'Page.SubjectFilter.onCheckbox()',class:'filterToggle'
+					}, SubjectFilter.toggles[toggle]
+				);
+			}
 			Page.render(markup);
 		}
-		static onSubmit() {
-			let element = <HTMLInputElement>document.getElementById('subject-name');
-			let name = element.value;
-			let subject = new Model.Subject(name);
-			subject.store();
-			Page.showSubject(subject.id);
+
+		static updateToggles() {
+			let temp = SubjectFilter.toggles;
+			if (!temp) { temp = {}; }
+			SubjectFilter.toggles = {};
+			for (let tag of Model.Data.subjectTags) {
+				let on = temp.hasOwnProperty(tag) && temp[tag];
+				SubjectFilter.toggles[tag]=false;
+			}
 		}
-		static onCancel() {
-			Page.showSubjects();
+
+		static onCheckbox() {
+			let filterOn = <HTMLInputElement>document.getElementById('filterOn');
+			SubjectFilter.filterOn = filterOn.checked;
+			for (let elem of document.getElementsByClassName('filterToggle')) {
+				let checkbox = <HTMLInputElement>elem;
+				SubjectFilter.toggles[checkbox.name] = checkbox.checked;
+			}
 		}
 	}
 
@@ -373,15 +426,30 @@ namespace Page {
 			let options = Page.generateMenuOptions(['alpha','visited']);
 			markup += Page.generateElement('select',options,{id:'sort-order',onchange:'Page.Subjects.onSortOrder()'});
 			markup += Page.generateElement('div',null,{id:'thumb-area'});
-
 			Page.render(markup);
 			Subjects.updateThumbs();
 		}
 
 		static updateThumbs() {
 			let markup = "";
-			let subjects = Model.Data.query({type:'subject'});
-
+			let query = {type:'subject'};
+			let unfiltered = Model.Data.query(query);
+			let subjects = [];
+			// apply filter
+			if (SubjectFilter.filterOn) {
+				for (let subject of unfiltered) {
+					let subjectOk = true;
+					for (let toggleName of Object.keys(SubjectFilter.toggles)) {
+						if (SubjectFilter.toggles[toggleName]) {
+							if (subject.tags.indexOf(toggleName) === -1) { subjectOk = false; continue; }
+						}
+					}
+					if (subjectOk) { subjects.push (subject); }
+				}
+			} else {
+				subjects = unfiltered;
+			}
+			// sort
 			let orderMenu = <HTMLSelectElement>document.getElementById('sort-order');
 			let order = orderMenu.value;
 			switch (order) {
@@ -394,7 +462,7 @@ namespace Page {
 					break;
 				}
 			}
-
+			// create thumbs
 			for(let subject of subjects){
 				let thumb = Subject.getThumbData(subject.id);
 				let onclick = "Page.Subjects.onClickSubject("+subject.id+")";
@@ -413,5 +481,4 @@ namespace Page {
 		}
 	}
 
-	export class ImageEdit {}
 }

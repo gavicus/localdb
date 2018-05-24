@@ -192,7 +192,8 @@ var Page;
         Pages[Pages["NewSubject"] = 6] = "NewSubject";
         Pages[Pages["NewSubjectTag"] = 7] = "NewSubjectTag";
         Pages[Pages["Subject"] = 8] = "Subject";
-        Pages[Pages["Subjects"] = 9] = "Subjects";
+        Pages[Pages["SubjectFilter"] = 9] = "SubjectFilter";
+        Pages[Pages["Subjects"] = 10] = "Subjects";
     })(Pages || (Pages = {}));
     ;
     class Page {
@@ -206,6 +207,7 @@ var Page;
         static showEditImage() { EditImage.render(); }
         static showConfirmRemoveSubject() { ConfirmRemoveSubject.render(); }
         static showNewSubjectTag() { NewSubjectTag.render(); }
+        static showSubjectFilter() { SubjectFilter.render(); }
         static render(markup) {
             let menu = Page.generateMenu();
             document.getElementById('page-area').innerHTML = menu + markup;
@@ -215,6 +217,7 @@ var Page;
             let names = ['Debug', 'Subjects'];
             if (Page.pageName === Pages.Subjects) {
                 names.push('NewSubject');
+                names.push('SubjectFilter');
             }
             if (Page.pageName === Pages.Image) {
                 names.push('EditImage');
@@ -240,6 +243,14 @@ var Page;
                 }
             }
             return markup;
+        }
+        static generateCheckbox(name, attribs, checked) {
+            let attributes = Object.assign({}, attribs, { type: 'checkbox' });
+            if (checked) {
+                attributes['checked'] = true;
+            }
+            let input = Page.generateElement('input', null, attributes);
+            return Page.generateElement('label', input + name);
         }
         static generateMenuOptions(names) {
             let options = "";
@@ -415,6 +426,44 @@ var Page;
     }
     Image.id = null;
     Page_1.Image = Image;
+    class NewPic {
+        static render() {
+            Page.pageName = Pages.NewPic;
+            let markup = "";
+            markup += Page.generateElement('input', null, { placeholder: 'image url', id: 'image-url' }, { wrap: {} });
+            markup += Page.generateElement('button', 'submit', { onclick: 'Page.NewPic.onSubmit()' }, { wrap: {} });
+            Page.render(markup);
+        }
+        static onSubmit() {
+            let input = document.getElementById('image-url');
+            let url = input.value;
+            let pic = new Model.Picture(url);
+            pic.subjectid = Subject.id;
+            pic.store();
+            input.value = '';
+        }
+    }
+    Page_1.NewPic = NewPic;
+    class NewSubject {
+        static render() {
+            Page.pageName = Pages.NewSubject;
+            let markup = Page.generateElement('input', null, { placeholder: 'Subject Name', id: 'subject-name' }, { wrap: {} });
+            markup += Page.generateElement('button', 'submit', { onclick: 'Page.NewSubject.onSubmit()' });
+            markup += Page.generateElement('button', 'cancel', { onclick: 'Page.NewSubject.onCancel()' });
+            Page.render(markup);
+        }
+        static onSubmit() {
+            let element = document.getElementById('subject-name');
+            let name = element.value;
+            let subject = new Model.Subject(name);
+            subject.store();
+            Page.showSubject(subject.id);
+        }
+        static onCancel() {
+            Page.showSubjects();
+        }
+    }
+    Page_1.NewSubject = NewSubject;
     class NewSubjectTag {
         static render() {
             Page.pageName = Pages.NewSubjectTag;
@@ -507,44 +556,46 @@ var Page;
     }
     Subject.id = null;
     Page_1.Subject = Subject;
-    class NewPic {
+    class SubjectFilter {
         static render() {
-            Page.pageName = Pages.NewPic;
-            let markup = "";
-            markup += Page.generateElement('input', null, { placeholder: 'image url', id: 'image-url' }, { wrap: {} });
-            markup += Page.generateElement('button', 'submit', { onclick: 'Page.NewPic.onSubmit()' }, { wrap: {} });
+            Page.pageName = Pages.SubjectFilter;
+            if (!SubjectFilter.toggles) {
+                SubjectFilter.updateToggles();
+            }
+            let markup = Page.generateElement('div', 'subject filter');
+            markup += Page.generateCheckbox('filter on', {
+                name: 'filterOn', id: 'filterOn', onclick: 'Page.SubjectFilter.onCheckbox()'
+            }, SubjectFilter.filterOn);
+            let toggles = Object.keys(SubjectFilter.toggles).sort();
+            for (let toggle of toggles) {
+                markup += Page.generateCheckbox(toggle, {
+                    name: toggle, onclick: 'Page.SubjectFilter.onCheckbox()', class: 'filterToggle'
+                }, SubjectFilter.toggles[toggle]);
+            }
             Page.render(markup);
         }
-        static onSubmit() {
-            let input = document.getElementById('image-url');
-            let url = input.value;
-            let pic = new Model.Picture(url);
-            pic.subjectid = Subject.id;
-            pic.store();
-            input.value = '';
+        static updateToggles() {
+            let temp = SubjectFilter.toggles;
+            if (!temp) {
+                temp = {};
+            }
+            SubjectFilter.toggles = {};
+            for (let tag of Model.Data.subjectTags) {
+                let on = temp.hasOwnProperty(tag) && temp[tag];
+                SubjectFilter.toggles[tag] = false;
+            }
+        }
+        static onCheckbox() {
+            let filterOn = document.getElementById('filterOn');
+            SubjectFilter.filterOn = filterOn.checked;
+            for (let elem of document.getElementsByClassName('filterToggle')) {
+                let checkbox = elem;
+                SubjectFilter.toggles[checkbox.name] = checkbox.checked;
+            }
         }
     }
-    Page_1.NewPic = NewPic;
-    class NewSubject {
-        static render() {
-            Page.pageName = Pages.NewSubject;
-            let markup = Page.generateElement('input', null, { placeholder: 'Subject Name', id: 'subject-name' }, { wrap: {} });
-            markup += Page.generateElement('button', 'submit', { onclick: 'Page.NewSubject.onSubmit()' });
-            markup += Page.generateElement('button', 'cancel', { onclick: 'Page.NewSubject.onCancel()' });
-            Page.render(markup);
-        }
-        static onSubmit() {
-            let element = document.getElementById('subject-name');
-            let name = element.value;
-            let subject = new Model.Subject(name);
-            subject.store();
-            Page.showSubject(subject.id);
-        }
-        static onCancel() {
-            Page.showSubjects();
-        }
-    }
-    Page_1.NewSubject = NewSubject;
+    SubjectFilter.filterOn = false;
+    Page_1.SubjectFilter = SubjectFilter;
     class Subjects {
         static render() {
             Page.pageName = Pages.Subjects;
@@ -557,7 +608,45 @@ var Page;
         }
         static updateThumbs() {
             let markup = "";
-            let subjects = Model.Data.query({ type: 'subject' });
+            let query = { type: 'subject' };
+            let unfiltered = Model.Data.query(query);
+            let subjects = [];
+            // apply filter
+            if (SubjectFilter.filterOn) {
+                for (let subject of unfiltered) {
+                    let subjectOk = true;
+                    for (let toggleName of Object.keys(SubjectFilter.toggles)) {
+                        if (SubjectFilter.toggles[toggleName]) {
+                            if (subject.tags.indexOf(toggleName) === -1) {
+                                subjectOk = false;
+                                continue;
+                            }
+                        }
+                    }
+                    if (subjectOk) {
+                        subjects.push(subject);
+                    }
+                    // console.log('subject',subject.name);
+                    // for (let toggleName of Object.keys(SubjectFilter.toggles)) {
+                    // 	console.log('toggle',toggleName);
+                    // 	if (SubjectFilter.toggles[toggleName]) {
+                    // 		console.log('on');
+                    // 		if (subject.tags.indexOf(toggleName) > -1) {
+                    // 			console.log('found');
+                    // 			subjects.push (subject);
+                    // 		}
+                    // 	}
+                    // 	else {
+                    // 		console.log('off');
+                    // 		subjects.push (subject);
+                    // 	}
+                    // }
+                }
+            }
+            else {
+                subjects = unfiltered;
+            }
+            // sort
             let orderMenu = document.getElementById('sort-order');
             let order = orderMenu.value;
             switch (order) {
@@ -570,6 +659,7 @@ var Page;
                     break;
                 }
             }
+            // create thumbs
             for (let subject of subjects) {
                 let thumb = Subject.getThumbData(subject.id);
                 let onclick = "Page.Subjects.onClickSubject(" + subject.id + ")";
@@ -586,7 +676,4 @@ var Page;
         }
     }
     Page_1.Subjects = Subjects;
-    class ImageEdit {
-    }
-    Page_1.ImageEdit = ImageEdit;
 })(Page || (Page = {}));
