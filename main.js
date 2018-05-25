@@ -712,13 +712,16 @@ var Page;
         static render() {
             Page.pageName = Pages.Subjects;
             SubjectThumb.subject = Model.Subject.read(Subject.id);
-            if (!SubjectThumb.subject.thumb) {
+            if (SubjectThumb.subject.thumb) {
+                SubjectThumb.thumbObject = Model.Picture.read(SubjectThumb.subject.thumb.imageId);
+            }
+            else {
                 let ownImages = Model.Data.query({ type: 'pic', subject: SubjectThumb.subject.id });
                 if (ownImages.length === 0) {
                     Subject.render(Subject.id);
                     return;
                 }
-                SubjectThumb.thumbObject = ownImages[0];
+                SubjectThumb.thumbObject = ownImages[0]; // this is not a Model.Picture!
                 SubjectThumb.subject.setThumb(SubjectThumb.thumbObject.id);
             }
             let imageObj = SubjectThumb.imageObject;
@@ -765,7 +768,6 @@ var Page;
         static onmousemove(event) {
             let mousex = event.offsetX;
             let mousey = event.offsetY;
-            console.log('onmousemove (' + mousex + ',' + mousey + ')');
             let workingImage = document.getElementById('workingImage');
             let scale = SubjectThumb.subject.thumb.maxwidth / workingImage.naturalWidth;
             if (SubjectThumb.selectingul) {
@@ -800,7 +802,6 @@ var Page;
         }
         static onBtnApply() { console.log('onBtnApply'); }
         static onBtnCancel() {
-            console.log('onBtnCancel');
             Page.showSubject(Subject.id);
         }
     }
