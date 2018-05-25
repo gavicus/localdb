@@ -512,6 +512,8 @@ namespace Page {
 	export class SubjectThumb {
 		static subject: Model.Subject;
 		static thumbObject: Model.Picture;
+		static selectingul = false;
+		static selectinglr = false;
 
 		static render() {
 			Page.pageName = Pages.Subjects;
@@ -525,12 +527,8 @@ namespace Page {
 				SubjectThumb.thumbObject = ownImages[0];
 				SubjectThumb.subject.setThumb(SubjectThumb.thumbObject.id);
 			}
-			let imageObj = Model.Picture.read(SubjectThumb.subject.thumb.imageId);
-			let markup = "";
-			markup += Page.generateElement(
-				'img',null,{src:imageObj.url,onclick:'Page.SubjectThumb.onclick()'}
-			);
-
+			let imageObj = SubjectThumb.imageObject;
+			let markup = Page.generateElement('div',null,{id:'workingBox'});
 			let resultBox = Page.generateElement('div',null,{id:'resultBox'});
 			let buttons = Page.generateElement('button','UpperLeft',{onclick:'Page.SubjectThumb.onBtnUpperLeft()'},{wrap:{}});
 			buttons += Page.generateElement('button','LowerRight',{onclick:'Page.SubjectThumb.onBtnLowerRight()'},{wrap:{}});
@@ -544,17 +542,77 @@ namespace Page {
 
 			Page.render(markup);
 			SubjectThumb.updateResult();
+			SubjectThumb.updateWorkingImage();
+		}
+
+		static get imageObject(): Model.Picture {
+			return Model.Picture.read(SubjectThumb.subject.thumb.imageId);
 		}
 
 		static updateResult() {
-			let attribs = {};
+			let style = 'margin-left:'+SubjectThumb.subject.thumb.marginx+';';
+			style += 'margin-top:'+SubjectThumb.subject.thumb.marginy+';';
+			style += 'max-width:'+SubjectThumb.subject.thumb.maxwidth+';';
+			let attribs = {id:'resultImage',style:style};
 			let img = Page.generateThumbnail(SubjectThumb.thumbObject,null,null,attribs);
 			let div = document.getElementById('resultBox');
 			div.innerHTML = img;
 		}
+		static updateWorkingImage() {
+			let markup = Page.generateElement(
+				'img',null,{
+					src:SubjectThumb.imageObject.url,id:'workingImage',
+					// style:'max-width:'+SubjectThumb.subject.thumb.maxwidth+';',
+					onclick:'Page.SubjectThumb.onclick()',
+					onmousemove:'Page.SubjectThumb.onmousemove(event)'
+				}
+			);
+			document.getElementById('workingBox').innerHTML=markup;
+		}
+		static onclick() {
+			SubjectThumb.selectingul=false;
+			SubjectThumb.selectinglr=false;
+		}
+		static onmousemove(event) {
+			let mousex = event.offsetX;
+			let mousey = event.offsetY;
+			console.log('onmousemove ('+mousex+','+mousey+')');
+			let workingImage = <HTMLImageElement>document.getElementById('workingImage');
+			let scale = SubjectThumb.subject.thumb.maxwidth / workingImage.naturalWidth;
+			if (SubjectThumb.selectingul) {
+				SubjectThumb.subject.thumb.marginx = -mousex*scale;
+				SubjectThumb.subject.thumb.marginy = -mousey*scale;
+				SubjectThumb.updateResult();
+				let resultImage = document.getElementById('resultImage');
+				let maxWidth = resultImage.getAttribute('max-width');
+				workingImage.setAttribute('max-width',maxWidth);
+			} else if (SubjectThumb.selectinglr) {
+				let dist = Math.max(mousex,mousey);
+				
+				let unscaledmarginx = -SubjectThumb.subject.thumb.marginx / scale;
+				let unscaledmarginy = -SubjectThumb.subject.thumb.marginy / scale;
 
-		static onBtnUpperLeft() {console.log('onBtnUpperLeft');}
-		static onBtnLowerRight() {console.log('onBtnLowerRight');}
+				let distPercent = dist / 100;
+				let newWidth = workingImage.naturalWidth * distPercent;
+				scale = newWidth / workingImage.naturalWidth;
+
+				SubjectThumb.subject.thumb.marginx = -unscaledmarginx*scale;
+				SubjectThumb.subject.thumb.marginy = -unscaledmarginy*scale;
+
+				SubjectThumb.subject.thumb.maxwidth = newWidth;
+				SubjectThumb.updateResult();
+				SubjectThumb.updateWorkingImage();
+			}
+
+		}
+		static onBtnUpperLeft() {
+			SubjectThumb.onclick();
+			SubjectThumb.selectingul = true;
+		}
+		static onBtnLowerRight() {
+			SubjectThumb.onclick();
+			SubjectThumb.selectinglr = true;
+		}
 		static onBtnApply() {console.log('onBtnApply');}
 		static onBtnCancel() {
 			console.log('onBtnCancel');

@@ -125,7 +125,7 @@ namespace Model {
 		}
 
 		public get data(): any {
-			return {type: 'pic', url: this.url, subject: this.subjectid};
+			return {type: 'pic', url: this.url, subject: this.subjectid, id:this.id};
 		}
 
 		store(): void {
@@ -138,8 +138,10 @@ namespace Model {
 		}
 
 		static initFromData(data:any): Picture {
+			console.log('initFromData',data);
 			let pic = new Picture(data.url);
 			pic.id = data.id;
+			pic.subjectid = data.subject;
 			return pic;
 		}
 
