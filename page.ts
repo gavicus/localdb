@@ -1,5 +1,8 @@
 namespace Page {
-	enum Pages {ConfirmRemoveSubject,Debug,EditImage,Gallery,Image,NewPic,NewSubject,NewSubjectTag,Subject,SubjectFilter,Subjects};
+	enum Pages {
+		ConfirmRemoveSubject,Debug,EditImage,Gallery,Image,NewPic,
+		NewSubject,NewSubjectTag,Subject,SubjectFilter,Subjects,SubjectThumb
+	};
 
 	export class Page {
 		static pageName: Pages = Pages.Debug;
@@ -15,6 +18,7 @@ namespace Page {
 		static showConfirmRemoveSubject() { ConfirmRemoveSubject.render() }
 		static showNewSubjectTag() { NewSubjectTag.render() }
 		static showSubjectFilter() { SubjectFilter.render() }
+		static showSubjectThumb() { SubjectThumb.render() }
 
 		static render(markup) {
 			let menu = Page.generateMenu();
@@ -68,9 +72,15 @@ namespace Page {
 			return options;
 		}
 		
-		static generateThumbnail(imageData, onclick=null, tooltip=null) {
+		static generateThumbnail(imageData, onclick=null, tooltip=null, imageAttribs=null) {
+			if (!imageAttribs) { imageAttribs = {}; }
+			imageAttribs['src'] = imageData.url;
+			if (!imageAttribs.hasOwnProperty('style')) { imageAttribs['style'] = ''; }
+			if (imageAttribs.style.indexOf('max-width') === -1) {
+				imageAttribs['style'] += 'max-width:120;';
+			}
 			let image = imageData
-				? Page.generateElement('img',null,{src:imageData.url,style:'max-width:120;'})
+				? Page.generateElement('img',null,imageAttribs)
 				: '';
 			let thumb = Page.generateElement('div',image,{
 				class:'thumb',
@@ -94,8 +104,8 @@ namespace Page {
 		static render() {
 			Page.pageName = Pages.ConfirmRemoveSubject;
 			let subject = Model.Subject.read(Subject.id);
-			let message = 'Really remove subject ' + subject.name;
-			let markup = Page.generateElement('div',message);
+			let message = 'Really remove subject ' + subject.name + '?';
+			let markup = Page.generateElement('div',message,{style:'margin:5px 0;'});
 			let buttons = Page.generateElement('button','confirm',{
 				onclick:'Page.ConfirmRemoveSubject.onConfirm()'
 			});
@@ -314,6 +324,7 @@ namespace Page {
 
 	export class Subject {
 		static id:number = null;
+
 		static render(id:number){
 			Page.pageName = Pages.Subject;
 			
@@ -327,6 +338,7 @@ namespace Page {
 			let buttons = Page.generateElement('button','Gallery',{
 				onclick:"Page.Page.showGallery({subject:"+Subject.id+"})"
 			});
+			buttons += Page.generateElement('button','Thumbnail',{onclick:"Page.Page.showSubjectThumb()"});
 			buttons += Page.generateElement('button','New Pic',{onclick:"Page.Page.showNewPic()"});
 			buttons += Page.generateElement('button','Remove Subject',{onclick:"Page.Page.showConfirmRemoveSubject()"});
 			markup += Page.generateElement('div',buttons);
@@ -347,11 +359,26 @@ namespace Page {
 		}
 		static getThumbData(subjectid){
 			let subjectData = Model.Data.getEntry(subjectid);
-			let thumbData = Model.Data.getEntry(subjectData.thumb);
-			if(!thumbData){
+			let thumbData = {};
+			if (subjectData.thumb) {
+				if (typeof subjectData.thumb === 'number') {
+					console.log('type is number',subjectData.thumb);
+					thumbData = Model.Data.getEntry(subjectData.thumb);
+				} else {
+					console.log('type is object',subjectData.thumb);
+					// { imageId, marginx, marginy, maxwidth }
+					thumbData = Model.Data.getEntry(subjectData.thumb.imageId);
+					thumbData['marginx'] = subjectData.thumb.marginx;
+					thumbData['marginy'] = subjectData.thumb.marginy;
+					thumbData['maxwidth'] = subjectData.thumb.maxwidth;
+				}
+			} else {
 				let images = Model.Data.query({type:'pic',subject:subjectData.id});
-				if(images.length > 0){ thumbData = images[0]; }
+				if(images.length > 0){
+					thumbData = images[0];
+				}
 			}
+
 			return thumbData;
 		}
 		static onSave() {
@@ -463,7 +490,8 @@ namespace Page {
 				}
 			}
 			// create thumbs
-			for(let subject of subjects){
+			for(let data of subjects){
+				let subject = Model.Subject.initFromData(data);
 				let thumb = Subject.getThumbData(subject.id);
 				let onclick = "Page.Subjects.onClickSubject("+subject.id+")";
 				markup += Page.generateThumbnail(thumb,onclick,subject.name);
@@ -478,6 +506,59 @@ namespace Page {
 
 		static onSortOrder() {
 			Subjects.updateThumbs();
+		}
+	}
+
+	export class SubjectThumb {
+		static subject: Model.Subject;
+		static thumbObject: Model.Picture;
+
+		static render() {
+			Page.pageName = Pages.Subjects;
+			SubjectThumb.subject = Model.Subject.read(Subject.id);
+			if (!SubjectThumb.subject.thumb) {
+				let ownImages = Model.Data.query({type:'pic',subject:SubjectThumb.subject.id});
+				if (ownImages.length === 0) {
+					Subject.render(Subject.id);
+					return;
+				}
+				SubjectThumb.thumbObject = ownImages[0];
+				SubjectThumb.subject.setThumb(SubjectThumb.thumbObject.id);
+			}
+			let imageObj = Model.Picture.read(SubjectThumb.subject.thumb.imageId);
+			let markup = "";
+			markup += Page.generateElement(
+				'img',null,{src:imageObj.url,onclick:'Page.SubjectThumb.onclick()'}
+			);
+
+			let resultBox = Page.generateElement('div',null,{id:'resultBox'});
+			let buttons = Page.generateElement('button','UpperLeft',{onclick:'Page.SubjectThumb.onBtnUpperLeft()'},{wrap:{}});
+			buttons += Page.generateElement('button','LowerRight',{onclick:'Page.SubjectThumb.onBtnLowerRight()'},{wrap:{}});
+			buttons += Page.generateElement('button','Apply',{onclick:'Page.SubjectThumb.onBtnApply()'},{wrap:{}});
+			buttons += Page.generateElement('button','Cancel',{onclick:'Page.SubjectThumb.onBtnCancel()'},{wrap:{}});
+			let style = `
+				padding:10px;position:fixed;top:35;right:10;
+				z-index:1;background-color:#555;
+			`;
+			markup += Page.generateElement('div',resultBox+buttons,{style:style});
+
+			Page.render(markup);
+			SubjectThumb.updateResult();
+		}
+
+		static updateResult() {
+			let attribs = {};
+			let img = Page.generateThumbnail(SubjectThumb.thumbObject,null,null,attribs);
+			let div = document.getElementById('resultBox');
+			div.innerHTML = img;
+		}
+
+		static onBtnUpperLeft() {console.log('onBtnUpperLeft');}
+		static onBtnLowerRight() {console.log('onBtnLowerRight');}
+		static onBtnApply() {console.log('onBtnApply');}
+		static onBtnCancel() {
+			console.log('onBtnCancel');
+			Page.showSubject(Subject.id);
 		}
 	}
 

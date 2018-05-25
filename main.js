@@ -130,12 +130,17 @@ var Model;
             this.type = 'pic';
             this.url = url;
         }
+        get data() {
+            return { type: 'pic', url: this.url, subject: this.subjectid };
+        }
         store() {
-            let data = Model.Data.store({ type: 'pic', url: this.url, subject: this.subjectid });
+            let data = Model.Data.store(this.data);
             this.id = data.id;
         }
         static read(id) {
-            let data = Model.Data.getEntry(id);
+            return Picture.initFromData(Model.Data.getEntry(id));
+        }
+        static initFromData(data) {
             let pic = new Picture(data.url);
             pic.id = data.id;
             return pic;
@@ -150,8 +155,14 @@ var Model;
         }
         static read(id) {
             let data = Model.Data.getEntry(id);
+            return Subject.initFromData(data);
+        }
+        static initFromData(data) {
             let subject = new Subject(data.name);
             subject.thumb = data.thumb;
+            if (typeof subject.thumb === 'number') {
+                subject.setThumb(data.thumb);
+            }
             subject.id = data.id;
             if (data.hasOwnProperty('visited')) {
                 subject.visited = new Date(data.visited);
@@ -159,7 +170,13 @@ var Model;
             if (data.hasOwnProperty('tags')) {
                 subject.tags = data.tags;
             }
+            else {
+                subject.tags = [];
+            }
             return subject;
+        }
+        setThumb(imageId) {
+            this.thumb = { imageId: imageId, marginx: 0, marginy: 0, maxwidth: 120 };
         }
         store() {
             this.visited = new Date();
@@ -194,6 +211,7 @@ var Page;
         Pages[Pages["Subject"] = 8] = "Subject";
         Pages[Pages["SubjectFilter"] = 9] = "SubjectFilter";
         Pages[Pages["Subjects"] = 10] = "Subjects";
+        Pages[Pages["SubjectThumb"] = 11] = "SubjectThumb";
     })(Pages || (Pages = {}));
     ;
     class Page {
@@ -208,6 +226,7 @@ var Page;
         static showConfirmRemoveSubject() { ConfirmRemoveSubject.render(); }
         static showNewSubjectTag() { NewSubjectTag.render(); }
         static showSubjectFilter() { SubjectFilter.render(); }
+        static showSubjectThumb() { SubjectThumb.render(); }
         static render(markup) {
             let menu = Page.generateMenu();
             document.getElementById('page-area').innerHTML = menu + markup;
@@ -259,9 +278,19 @@ var Page;
             }
             return options;
         }
-        static generateThumbnail(imageData, onclick = null, tooltip = null) {
+        static generateThumbnail(imageData, onclick = null, tooltip = null, imageAttribs = null) {
+            if (!imageAttribs) {
+                imageAttribs = {};
+            }
+            imageAttribs['src'] = imageData.url;
+            if (!imageAttribs.hasOwnProperty('style')) {
+                imageAttribs['style'] = '';
+            }
+            if (imageAttribs.style.indexOf('max-width') === -1) {
+                imageAttribs['style'] += 'max-width:120;';
+            }
             let image = imageData
-                ? Page.generateElement('img', null, { src: imageData.url, style: 'max-width:120;' })
+                ? Page.generateElement('img', null, imageAttribs)
                 : '';
             let thumb = Page.generateElement('div', image, {
                 class: 'thumb',
@@ -287,8 +316,8 @@ var Page;
         static render() {
             Page.pageName = Pages.ConfirmRemoveSubject;
             let subject = Model.Subject.read(Subject.id);
-            let message = 'Really remove subject ' + subject.name;
-            let markup = Page.generateElement('div', message);
+            let message = 'Really remove subject ' + subject.name + '?';
+            let markup = Page.generateElement('div', message, { style: 'margin:5px 0;' });
             let buttons = Page.generateElement('button', 'confirm', {
                 onclick: 'Page.ConfirmRemoveSubject.onConfirm()'
             });
@@ -502,6 +531,7 @@ var Page;
             let buttons = Page.generateElement('button', 'Gallery', {
                 onclick: "Page.Page.showGallery({subject:" + Subject.id + "})"
             });
+            buttons += Page.generateElement('button', 'Thumbnail', { onclick: "Page.Page.showSubjectThumb()" });
             buttons += Page.generateElement('button', 'New Pic', { onclick: "Page.Page.showNewPic()" });
             buttons += Page.generateElement('button', 'Remove Subject', { onclick: "Page.Page.showConfirmRemoveSubject()" });
             markup += Page.generateElement('div', buttons);
@@ -522,8 +552,22 @@ var Page;
         }
         static getThumbData(subjectid) {
             let subjectData = Model.Data.getEntry(subjectid);
-            let thumbData = Model.Data.getEntry(subjectData.thumb);
-            if (!thumbData) {
+            let thumbData = {};
+            if (subjectData.thumb) {
+                if (typeof subjectData.thumb === 'number') {
+                    console.log('type is number', subjectData.thumb);
+                    thumbData = Model.Data.getEntry(subjectData.thumb);
+                }
+                else {
+                    console.log('type is object', subjectData.thumb);
+                    // { imageId, marginx, marginy, maxwidth }
+                    thumbData = Model.Data.getEntry(subjectData.thumb.imageId);
+                    thumbData['marginx'] = subjectData.thumb.marginx;
+                    thumbData['marginy'] = subjectData.thumb.marginy;
+                    thumbData['maxwidth'] = subjectData.thumb.maxwidth;
+                }
+            }
+            else {
                 let images = Model.Data.query({ type: 'pic', subject: subjectData.id });
                 if (images.length > 0) {
                     thumbData = images[0];
@@ -626,21 +670,6 @@ var Page;
                     if (subjectOk) {
                         subjects.push(subject);
                     }
-                    // console.log('subject',subject.name);
-                    // for (let toggleName of Object.keys(SubjectFilter.toggles)) {
-                    // 	console.log('toggle',toggleName);
-                    // 	if (SubjectFilter.toggles[toggleName]) {
-                    // 		console.log('on');
-                    // 		if (subject.tags.indexOf(toggleName) > -1) {
-                    // 			console.log('found');
-                    // 			subjects.push (subject);
-                    // 		}
-                    // 	}
-                    // 	else {
-                    // 		console.log('off');
-                    // 		subjects.push (subject);
-                    // 	}
-                    // }
                 }
             }
             else {
@@ -660,7 +689,8 @@ var Page;
                 }
             }
             // create thumbs
-            for (let subject of subjects) {
+            for (let data of subjects) {
+                let subject = Model.Subject.initFromData(data);
                 let thumb = Subject.getThumbData(subject.id);
                 let onclick = "Page.Subjects.onClickSubject(" + subject.id + ")";
                 markup += Page.generateThumbnail(thumb, onclick, subject.name);
@@ -676,4 +706,48 @@ var Page;
         }
     }
     Page_1.Subjects = Subjects;
+    class SubjectThumb {
+        static render() {
+            Page.pageName = Pages.Subjects;
+            SubjectThumb.subject = Model.Subject.read(Subject.id);
+            if (!SubjectThumb.subject.thumb) {
+                let ownImages = Model.Data.query({ type: 'pic', subject: SubjectThumb.subject.id });
+                if (ownImages.length === 0) {
+                    Subject.render(Subject.id);
+                    return;
+                }
+                SubjectThumb.thumbObject = ownImages[0];
+                SubjectThumb.subject.setThumb(SubjectThumb.thumbObject.id);
+            }
+            let imageObj = Model.Picture.read(SubjectThumb.subject.thumb.imageId);
+            let markup = "";
+            markup += Page.generateElement('img', null, { src: imageObj.url, onclick: 'Page.SubjectThumb.onclick()' });
+            let resultBox = Page.generateElement('div', null, { id: 'resultBox' });
+            let buttons = Page.generateElement('button', 'UpperLeft', { onclick: 'Page.SubjectThumb.onBtnUpperLeft()' }, { wrap: {} });
+            buttons += Page.generateElement('button', 'LowerRight', { onclick: 'Page.SubjectThumb.onBtnLowerRight()' }, { wrap: {} });
+            buttons += Page.generateElement('button', 'Apply', { onclick: 'Page.SubjectThumb.onBtnApply()' }, { wrap: {} });
+            buttons += Page.generateElement('button', 'Cancel', { onclick: 'Page.SubjectThumb.onBtnCancel()' }, { wrap: {} });
+            let style = `
+				padding:10px;position:fixed;top:35;right:10;
+				z-index:1;background-color:#555;
+			`;
+            markup += Page.generateElement('div', resultBox + buttons, { style: style });
+            Page.render(markup);
+            SubjectThumb.updateResult();
+        }
+        static updateResult() {
+            let attribs = {};
+            let img = Page.generateThumbnail(SubjectThumb.thumbObject, null, null, attribs);
+            let div = document.getElementById('resultBox');
+            div.innerHTML = img;
+        }
+        static onBtnUpperLeft() { console.log('onBtnUpperLeft'); }
+        static onBtnLowerRight() { console.log('onBtnLowerRight'); }
+        static onBtnApply() { console.log('onBtnApply'); }
+        static onBtnCancel() {
+            console.log('onBtnCancel');
+            Page.showSubject(Subject.id);
+        }
+    }
+    Page_1.SubjectThumb = SubjectThumb;
 })(Page || (Page = {}));

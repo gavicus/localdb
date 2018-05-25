@@ -124,13 +124,20 @@ namespace Model {
 			this.url = url;
 		}
 
+		public get data(): any {
+			return {type: 'pic', url: this.url, subject: this.subjectid};
+		}
+
 		store(): void {
-			let data = Model.Data.store( {type: 'pic', url: this.url, subject: this.subjectid} );
+			let data = Model.Data.store(this.data);
 			this.id = data.id;
 		}
 		
 		static read(id:number): Picture {
-			let data = Model.Data.getEntry(id);
+			return Picture.initFromData(Model.Data.getEntry(id));
+		}
+
+		static initFromData(data:any): Picture {
 			let pic = new Picture(data.url);
 			pic.id = data.id;
 			return pic;
@@ -140,7 +147,7 @@ namespace Model {
 
 	export class Subject {
 		public type = 'subject';
-		public thumb: number;
+		public thumb: any;
 		public id: number;
 		public visited: Date;
 		public tags: string[] = [];
@@ -149,16 +156,29 @@ namespace Model {
 
 		static read(id: number): Subject {
 			let data = Model.Data.getEntry(id);
+			return Subject.initFromData(data);
+		}
+		
+		static initFromData(data:any): Subject {
 			let subject = new Subject(data.name);
 			subject.thumb = data.thumb;
+			if (typeof subject.thumb === 'number') {
+				subject.setThumb(data.thumb);
+			}
 			subject.id = data.id;
 			if (data.hasOwnProperty('visited')) {
 				subject.visited = new Date(data.visited);
 			}
 			if (data.hasOwnProperty('tags')) {
 				subject.tags = data.tags;
+			} else {
+				subject.tags = [];
 			}
 			return subject;
+		}
+
+		setThumb(imageId:number) {
+			this.thumb = { imageId:imageId, marginx:0, marginy:0, maxwidth:120 };
 		}
 
 		store(): void {
