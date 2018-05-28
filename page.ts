@@ -343,6 +343,12 @@ namespace Page {
 			buttons += Page.generateElement('button','Remove Subject',{onclick:"Page.Page.showConfirmRemoveSubject()"});
 			markup += Page.generateElement('div',buttons);
 
+			// add site
+			let input = Page.generateElement('input',null,{placeholder:'new site',id:'new-site'});
+			let siteBtn = Page.generateElement('button','add site',{onclick:'Page.Subject.onAddSite()'});
+			markup += Page.generateElement('div',input+siteBtn);
+
+			// tags
 			let tagNames = Model.Data.subjectTags;
 			let tagChecks = "";
 			for (let name of tagNames) {
@@ -354,6 +360,14 @@ namespace Page {
 			markup += Page.generateElement('div',tagChecks,{class:'tag-checkboxes'});
 			markup += Page.generateElement('button','Save',{onclick:'Page.Subject.onSave()'},{wrap:{}});
 			markup += Page.generateElement('button','New Tag',{onclick:'Page.Page.showNewSubjectTag()'},{wrap:{}});
+
+			// vids
+
+			// sites
+			let siteData = Model.Data.query({type:'site',subject:id});
+			for (let site of siteData) {
+				markup += Page.generateElement('a',site.url,{href:site.url,target:'_blank'},{wrap:{}});
+			}
 
 			Page.render(markup);
 		}
@@ -380,6 +394,18 @@ namespace Page {
 			}
 
 			return thumbData;
+		}
+		static onAddSite() {
+			let input = <HTMLInputElement>document.getElementById('new-site');
+			let url = input.value;
+			let data = {
+				type: "site",
+				name: "site",
+				url: url,
+				subject: Subject.id,
+			};
+			Model.Data.newEntry(data);
+			Subject.render(null);
 		}
 		static onSave() {
 			console.log('Subject.onSave');
