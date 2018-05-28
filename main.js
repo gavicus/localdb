@@ -241,6 +241,9 @@ var Page;
             if (Page.pageName === Pages.Image) {
                 names.push('EditImage');
             }
+            if (Page.pageName === Pages.Image) {
+                names.push('Gallery');
+            }
             for (let name of names) {
                 links += Page.generateElement('a', name, { onclick: 'Page.Page.show' + name + '()' });
             }
@@ -287,14 +290,14 @@ var Page;
                 imageAttribs['style'] = '';
             }
             if (imageAttribs.style.indexOf('max-width') === -1) {
-                imageAttribs['style'] += 'max-width:120;';
+                imageAttribs['style'] += 'height:80;max-width:120;';
             }
             let image = imageData
                 ? Page.generateElement('img', null, imageAttribs)
                 : '';
             let thumb = Page.generateElement('div', image, {
-                class: 'thumb',
-                style: 'max-width:120;',
+                // class:'thumb',
+                style: 'max-width:120;border:1px solid white;',
             });
             let contents = thumb;
             let attributes = { class: 'subject-row' };
@@ -415,7 +418,13 @@ var Page;
     }
     Page_1.EditImage = EditImage;
     class Gallery {
-        static render(query) {
+        static render(query = null) {
+            if (!query) {
+                query = Gallery.query;
+            }
+            else {
+                Gallery.query = query;
+            }
             Page.pageName = Pages.Gallery;
             query['type'] = 'pic';
             Gallery.images = Model.Data.query(query);
