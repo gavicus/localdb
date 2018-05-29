@@ -34,8 +34,14 @@ namespace Page {
 			}
 			if (Page.pageName === Pages.Image) { names.push('EditImage'); }
 			if (Page.pageName === Pages.Image) { names.push('Gallery'); }
+			if (Page.pageName === Pages.Gallery) { names.push(''); }
 			for (let name of names) {
 				links += Page.generateElement('a',name,{onclick:'Page.Page.show'+name+'()'});
+			}
+			if (Page.pageName === Pages.Gallery) {
+				let subject = Model.Subject.read(Subject.id);
+				let subjectName = 
+				links += Page.generateElement('a',subject.name,{onclick:'Page.Page.showSubject()'});
 			}
 			return "<div class='links'>"+links+"</div>";
 		}
@@ -329,11 +335,12 @@ namespace Page {
 	export class Subject {
 		static id:number = null;
 
-		static render(id:number){
+		static render(id:number=null){
 			Page.pageName = Pages.Subject;
 			
 			if (id) { Subject.id = id; }
 			else { id = Subject.id; }
+
 			let subject = Model.Subject.read(id);
 			subject.store(); // to update visited date
 			let markup = "";

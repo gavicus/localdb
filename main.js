@@ -244,8 +244,15 @@ var Page;
             if (Page.pageName === Pages.Image) {
                 names.push('Gallery');
             }
+            if (Page.pageName === Pages.Gallery) {
+                names.push('');
+            }
             for (let name of names) {
                 links += Page.generateElement('a', name, { onclick: 'Page.Page.show' + name + '()' });
+            }
+            if (Page.pageName === Pages.Gallery) {
+                let subject = Model.Subject.read(Subject.id);
+                let subjectName = links += Page.generateElement('a', subject.name, { onclick: 'Page.Page.showSubject()' });
             }
             return "<div class='links'>" + links + "</div>";
         }
@@ -524,7 +531,7 @@ var Page;
     }
     Page_1.NewSubjectTag = NewSubjectTag;
     class Subject {
-        static render(id) {
+        static render(id = null) {
             Page.pageName = Pages.Subject;
             if (id) {
                 Subject.id = id;
