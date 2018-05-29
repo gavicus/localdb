@@ -74,8 +74,7 @@ namespace Model {
 		static store(content){
 			console.log('Model.Data.store',content);
 			console.log('content.id',content.id);
-			console.log('content.name',content.name);
-			if(content.hasOwnProperty('id')){
+			if(content.hasOwnProperty('id') && content.id){
 				console.log('updateEntry');
 				return Data.updateEntry(content);
 			}
@@ -196,5 +195,41 @@ namespace Model {
 			let response = Model.Data.store(content);
 			this.id = response.id;
 		}
+	}
+
+	export class Vid {
+		public type = 'vid';
+		public id:number;
+		public url: string;
+		public thumburl: string;
+		public subject: number;
+
+		public static getVids(subjectid:number): Vid[] {
+			let vids: Vid[] = [];
+			let data = Data.query({type:'vid', subject:subjectid});
+			for (let entry of data) {
+				vids.push(Vid.init(entry));
+			}
+			return vids;
+		}
+
+		public static init(data: any) {
+			let vid = new Vid();
+			vid.id = data.id;
+			vid.url = data.url;
+			vid.thumburl = data.thumburl;
+			vid.subject = data.subject;
+			return vid;
+		}
+		
+		store(): void {
+			let data = {
+				type:'vid',id:this.id,url:this.url,
+				thumburl:this.thumburl,subject:this.subject
+			};
+			data = Model.Data.store(data);
+			this.id = data.id;
+		}
+		
 	}
 }

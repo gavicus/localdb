@@ -81,8 +81,7 @@ var Model;
         static store(content) {
             console.log('Model.Data.store', content);
             console.log('content.id', content.id);
-            console.log('content.name', content.name);
-            if (content.hasOwnProperty('id')) {
+            if (content.hasOwnProperty('id') && content.id) {
                 console.log('updateEntry');
                 return Data.updateEntry(content);
             }
@@ -197,6 +196,36 @@ var Model;
         }
     }
     Model.Subject = Subject;
+    class Vid {
+        constructor() {
+            this.type = 'vid';
+        }
+        static getVids(subjectid) {
+            let vids = [];
+            let data = Data.query({ type: 'vid', subject: subjectid });
+            for (let entry of data) {
+                vids.push(Vid.init(entry));
+            }
+            return vids;
+        }
+        static init(data) {
+            let vid = new Vid();
+            vid.id = data.id;
+            vid.url = data.url;
+            vid.thumburl = data.thumburl;
+            vid.subject = data.subject;
+            return vid;
+        }
+        store() {
+            let data = {
+                type: 'vid', id: this.id, url: this.url,
+                thumburl: this.thumburl, subject: this.subject
+            };
+            data = Model.Data.store(data);
+            this.id = data.id;
+        }
+    }
+    Model.Vid = Vid;
 })(Model || (Model = {}));
 var Page;
 (function (Page_1) {
@@ -553,10 +582,22 @@ var Page;
             buttons += Page.generateElement('button', 'New Pic', { onclick: "Page.Page.showNewPic()" });
             buttons += Page.generateElement('button', 'Remove Subject', { onclick: "Page.Page.showConfirmRemoveSubject()" });
             markup += Page.generateElement('div', buttons, { class: 'section' });
-            // add site
-            let input = Page.generateElement('input', null, { placeholder: 'new site', id: 'new-site' });
-            let siteBtn = Page.generateElement('button', 'add site', { onclick: 'Page.Subject.onAddSite()' });
-            markup += Page.generateElement('div', input + siteBtn, { class: 'section' });
+            // add vid
+            let vidinput = Page.generateElement('input', null, { placeholder: 'new vid', id: 'new-vid' });
+            let vidthumbinput = Page.generateElement('input', null, { placeholder: 'new vid thumb', id: 'new-vid-thumb' });
+            let vidBtn = Page.generateElement('button', 'add vid', { onclick: 'Page.Subject.onAddVid()' });
+            markup += Page.generateElement('div', vidinput + vidthumbinput + vidBtn, { class: 'section' });
+            // vids
+            let vids = Model.Vid.getVids(Subject.id);
+            if (vids.length > 0) {
+                let vidlinks = '';
+                for (let vid of vids) {
+                    // let thumbimg = Page.generateElement('img',null,{src:vid.thumburl});
+                    let thumbimg = Page.generateThumbnail({ url: vid.thumburl });
+                    vidlinks += Page.generateElement('a', thumbimg, { target: '_blank', href: vid.url });
+                }
+                markup += Page.generateElement('div', vidlinks, { class: 'section' });
+            }
             // tags
             let tagNames = Model.Data.subjectTags;
             let tagChecks = "";
@@ -572,7 +613,10 @@ var Page;
             let newtagbtn = Page.generateElement('button', 'New Tag', { onclick: 'Page.Page.showNewSubjectTag()' });
             markup += Page.generateElement('div', checkboxes + newtagbtn, { class: 'section' });
             // markup += Page.generateElement('button','Save',{onclick:'Page.Subject.onSave()'},{wrap:{}});
-            // vids
+            // add site
+            let input = Page.generateElement('input', null, { placeholder: 'new site', id: 'new-site' });
+            let siteBtn = Page.generateElement('button', 'add site', { onclick: 'Page.Subject.onAddSite()' });
+            markup += Page.generateElement('div', input + siteBtn, { class: 'section' });
             // sites
             let siteData = Model.Data.query({ type: 'site', subject: id });
             let sitelinks = '';
@@ -620,6 +664,19 @@ var Page;
             };
             Model.Data.newEntry(data);
             Subject.render(null);
+        }
+        static onAddVid() {
+            let vidinput = document.getElementById('new-vid');
+            let vidurl = vidinput.value;
+            vidinput.value = '';
+            let thumbinput = document.getElementById('new-vid-thumb');
+            let thumburl = thumbinput.value;
+            thumbinput.value = '';
+            let data = { url: vidurl, thumburl: thumburl, subject: Subject.id };
+            console.log('onAddVid', data);
+            let vid = Model.Vid.init(data);
+            vid.store();
+            Subject.render();
         }
         static onSave() {
             console.log('Subject.onSave');

@@ -357,10 +357,23 @@ namespace Page {
 			buttons += Page.generateElement('button','Remove Subject',{onclick:"Page.Page.showConfirmRemoveSubject()"});
 			markup += Page.generateElement('div',buttons,{class:'section'});
 
-			// add site
-			let input = Page.generateElement('input',null,{placeholder:'new site',id:'new-site'});
-			let siteBtn = Page.generateElement('button','add site',{onclick:'Page.Subject.onAddSite()'});
-			markup += Page.generateElement('div',input+siteBtn,{class:'section'});
+			// add vid
+			let vidinput = Page.generateElement('input',null,{placeholder:'new vid',id:'new-vid'});
+			let vidthumbinput = Page.generateElement('input',null,{placeholder:'new vid thumb',id:'new-vid-thumb'});
+			let vidBtn = Page.generateElement('button','add vid',{onclick:'Page.Subject.onAddVid()'});
+			markup += Page.generateElement('div',vidinput+vidthumbinput+vidBtn,{class:'section'});
+
+			// vids
+			let vids = Model.Vid.getVids(Subject.id);
+			if (vids.length > 0) {
+				let vidlinks = '';
+				for (let vid of vids) {
+					// let thumbimg = Page.generateElement('img',null,{src:vid.thumburl});
+					let thumbimg = Page.generateThumbnail({url:vid.thumburl});
+					vidlinks += Page.generateElement('a',thumbimg,{target:'_blank',href:vid.url});
+				}
+				markup += Page.generateElement('div',vidlinks,{class:'section'});
+			}
 
 			// tags
 			let tagNames = Model.Data.subjectTags;
@@ -377,7 +390,10 @@ namespace Page {
 
 			// markup += Page.generateElement('button','Save',{onclick:'Page.Subject.onSave()'},{wrap:{}});
 
-			// vids
+			// add site
+			let input = Page.generateElement('input',null,{placeholder:'new site',id:'new-site'});
+			let siteBtn = Page.generateElement('button','add site',{onclick:'Page.Subject.onAddSite()'});
+			markup += Page.generateElement('div',input+siteBtn,{class:'section'});
 
 			// sites
 			let siteData = Model.Data.query({type:'site',subject:id});
@@ -426,6 +442,19 @@ namespace Page {
 			};
 			Model.Data.newEntry(data);
 			Subject.render(null);
+		}
+		static onAddVid() {
+			let vidinput = <HTMLInputElement>document.getElementById('new-vid');
+			let vidurl = vidinput.value;
+			vidinput.value = '';
+			let thumbinput = <HTMLInputElement>document.getElementById('new-vid-thumb');
+			let thumburl = thumbinput.value;
+			thumbinput.value = '';
+			let data = {url:vidurl,thumburl:thumburl,subject:Subject.id};
+			console.log('onAddVid',data);
+			let vid = Model.Vid.init(data);
+			vid.store();
+			Subject.render();
 		}
 		static onSave() {
 			console.log('Subject.onSave');
