@@ -132,6 +132,15 @@ namespace Model {
 			return Picture.initFromData(Model.Data.getEntry(id));
 		}
 
+		static getSubjectPics(subjectid: number): Picture[] {
+			let pics: Picture[] = [];
+			let data = Data.query({type:'pic',subject:subjectid});
+			for (let entry of data) {
+				pics.push(Picture.initFromData(entry));
+			}
+			return pics;
+		}
+
 		static initFromData(data:any): Picture {
 			let pic = new Picture(data.url);
 			pic.id = data.id;
@@ -157,19 +166,30 @@ namespace Model {
 		
 		static initFromData(data:any): Subject {
 			let subject = new Subject(data.name);
-			subject.thumb = data.thumb;
-			if (typeof subject.thumb === 'number') {
-				subject.setThumb(data.thumb);
-			}
 			subject.id = data.id;
+			subject.thumb = data.thumb;
+
+			if (typeof subject.thumb === 'undefined') {
+				let pics = Picture.getSubjectPics(subject.id);
+				if (pics.length > 0) {
+					subject.setThumb(pics[0].id);
+				}
+			}
+			else if (typeof subject.thumb === 'number') {
+				subject.setThumb(subject.thumb);
+			}
 			if (data.hasOwnProperty('visited')) {
 				subject.visited = new Date(data.visited);
+			} else {
+				subject['visited'] = new Date();
 			}
+
 			if (data.hasOwnProperty('tags')) {
 				subject.tags = data.tags;
 			} else {
 				subject.tags = [];
 			}
+
 			return subject;
 		}
 

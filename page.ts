@@ -88,17 +88,20 @@ namespace Page {
 
 		static generateSubjectThumbnail(subject: Model.Subject): string {
 			// image
-			let imageObject = Model.Picture.read(subject.thumb.imageId);
-			let imgStyle = 'margin-left:'+subject.thumb.marginx+';margin-top:'+subject.thumb.marginy+';max-width:'+subject.thumb.maxwidth+';';
-			let attribs = {src:imageObject.url, style:imgStyle,};
-			let imageMarkup = Page.generateElement('img',null,attribs);
+			let imageMarkup = '';
+			if (subject.thumb) {
+				let imageObject = Model.Picture.read(subject.thumb.imageId);
+				let imgStyle = 'margin-left:'+subject.thumb.marginx+';margin-top:'+subject.thumb.marginy+';max-width:'+subject.thumb.maxwidth+';';
+				let attribs = {src:imageObject.url, style:imgStyle,};
+				imageMarkup = Page.generateElement('img',null,attribs);
+			}
 
 			// tooltip
 			let tooltipMarkup = Page.generateElement('span',subject.name,{class:'tooltiptext'});
 
 			// wrapper
 			let wrapperStyle = 'height:'+Page.thumbSize+'px;width:'+Page.thumbSize+'px;';
-			wrapperStyle += 'overflow:hidden;';
+			wrapperStyle += 'overflow:hidden;display:inline-block;';
 			let onclick = 'Page.Page.showSubject('+subject.id+')';
 			let wrapperAtribs = {style:wrapperStyle,onclick:onclick,class:'tooltip'};
 			let wrapper = Page.generateElement('div',imageMarkup+tooltipMarkup,wrapperAtribs);
@@ -370,16 +373,11 @@ namespace Page {
 
 			let subject = Model.Subject.read(id);
 
-			console.log('subject',subject);
-
 			subject.store(); // to update visited date
 			let markup = "";
 			markup += Page.generateElement('div',subject.name);
 			
-			markup += Page.generateThumbnail(
-				Subject.getThumbData(Subject.id),
-				"Page.Page.showGallery({subject:"+Subject.id+"})"
-			);
+			markup += Page.generateSubjectThumbnail(subject);
 			
 			let buttons = Page.generateElement('button','Gallery',{
 				onclick:"Page.Page.showGallery({subject:"+Subject.id+"})"
@@ -444,11 +442,8 @@ namespace Page {
 			let thumbData = {};
 			if (subjectData.thumb) {
 				if (typeof subjectData.thumb === 'number') {
-					console.log('type is number',subjectData.thumb);
 					thumbData = Model.Data.getEntry(subjectData.thumb);
 				} else {
-					console.log('type is object',subjectData.thumb);
-					// { imageId, marginx, marginy, maxwidth }
 					thumbData = Model.Data.getEntry(subjectData.thumb.imageId);
 					thumbData['marginx'] = subjectData.thumb.marginx;
 					thumbData['marginy'] = subjectData.thumb.marginy;
@@ -483,19 +478,16 @@ namespace Page {
 			let thumburl = thumbinput.value;
 			thumbinput.value = '';
 			let data = {url:vidurl,thumburl:thumburl,subject:Subject.id};
-			console.log('onAddVid',data);
 			let vid = Model.Vid.init(data);
 			vid.store();
 			Subject.render();
 		}
 		static onSave() {
-			console.log('Subject.onSave');
 			let subject = Model.Subject.read(Subject.id);
 			let boxes = document.getElementsByClassName('tagCheckbox');
 			let checked = [];
 			for (let box of boxes) {
 				let element = <HTMLInputElement>box;
-				console.log('box',element.value,element.checked);
 				if (element.checked) {
 					if (subject.tags.indexOf(element.value) === -1) {
 						subject.tags.push(element.value);
@@ -599,9 +591,13 @@ namespace Page {
 			// create thumbs
 			for(let data of subjects){
 				let subject = Model.Subject.initFromData(data);
-				let thumb = Subject.getThumbData(subject.id);
-				let onclick = "Page.Subjects.onClickSubject("+subject.id+")";
-				markup += Page.generateThumbnail(thumb,onclick,subject.name);
+
+				// let thumb = Subject.getThumbData(subject.id);
+				// let onclick = "Page.Subjects.onClickSubject("+subject.id+")";
+				// markup += Page.generateThumbnail(thumb,onclick,subject.name);
+
+				markup += Page.generateSubjectThumbnail(subject);
+
 			}
 			let element = document.getElementById('thumb-area');
 			element.innerHTML = markup;
@@ -647,23 +643,6 @@ namespace Page {
 			Page.pageName = Pages.Subjects;
 			SubjectThumb.subject = Model.Subject.read(Subject.id);
 
-			// if (SubjectThumb.subject.thumb) {
-			// 	SubjectThumb.thumbObject = Model.Picture.read(SubjectThumb.subject.thumb.imageId);
-			// } else {
-			// 	let ownImages = Model.Data.query({type:'pic',subject:SubjectThumb.subject.id});
-			// 	if (ownImages.length === 0) {
-			// 		Subject.render(Subject.id);
-			// 		return;
-			// 	}
-			// 	SubjectThumb.thumbObject = ownImages[0]; // this is not a Model.Picture!
-			// 	SubjectThumb.subject.setThumb(SubjectThumb.thumbObject.id);
-			// }
-
-			let imageid = SubjectThumb.getImageId();
-			if (!imageid) { return Subject.render(Subject.id); }
-			SubjectThumb.thumbObject = Model.Picture.read(imageid);
-			SubjectThumb.subject.setThumb(imageid);
-
 			let imageObj = SubjectThumb.imageObject;
 			let markup = Page.generateElement('div',null,{id:'workingBox'});
 			let resultBox = Page.generateElement('div',null,{id:'resultBox'});
@@ -687,20 +666,11 @@ namespace Page {
 		}
 
 		static updateResult() {
-
-			// let style = 'margin-left:'+SubjectThumb.subject.thumb.marginx+';';
-			// style += 'margin-top:'+SubjectThumb.subject.thumb.marginy+';';
-			// style += 'max-width:'+SubjectThumb.subject.thumb.maxwidth+';';
-			// let attribs = {id:'resultImage',style:style};
-			// let img = Page.generateThumbnail(SubjectThumb.thumbObject,null,null,attribs);
-
 			let thumbData = {
 				subjectid: Subject.id,
 				imageid: SubjectThumb.getImageId()
 			};
 			let img = Page.generateSubjectThumbnail(SubjectThumb.subject);
-
-			console.log('img',img);
 
 			let div = document.getElementById('resultBox');
 			div.innerHTML = img;
@@ -729,19 +699,14 @@ namespace Page {
 				SubjectThumb.subject.thumb.marginx = -mousex*scale;
 				SubjectThumb.subject.thumb.marginy = -mousey*scale;
 
-				console.log('selecting ul', SubjectThumb.subject.thumb);
-
 				SubjectThumb.updateResult();
-				// let resultImage = document.getElementById('resultImage');
-				// let maxWidth = resultImage.getAttribute('max-width');
-				// workingImage.setAttribute('max-width',maxWidth);
 			} else if (SubjectThumb.selectinglr) {
 				let dist = Math.max(mousex,mousey);
 				
 				let unscaledmarginx = -SubjectThumb.subject.thumb.marginx / scale;
 				let unscaledmarginy = -SubjectThumb.subject.thumb.marginy / scale;
 
-				let distPercent = dist / 100;
+				let distPercent = Math.min(dist / 200, 1);
 				let newWidth = workingImage.naturalWidth * distPercent;
 				scale = newWidth / workingImage.naturalWidth;
 
