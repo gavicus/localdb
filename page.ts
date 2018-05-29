@@ -22,7 +22,10 @@ namespace Page {
 
 		static render(markup) {
 			let menu = Page.generateMenu();
-			document.getElementById('page-area').innerHTML = menu + markup;
+			document.getElementById('menu-links').innerHTML = menu;
+			if (markup) {
+				document.getElementById('page-area').innerHTML = markup;
+			}
 		}
 
 		static generateMenu() {
@@ -71,10 +74,12 @@ namespace Page {
 			return Page.generateElement('label',input+name);
 		}
 
-		static generateMenuOptions(names) {
+		static generateMenuOptions(names,selected=null) {
 			let options = "";
 			for (let name of names) {
-				options += Page.generateElement('option',name,{value:name});
+				let attribs = {value:name};
+				if (name === selected) { attribs['selected']='selected'; }
+				options += Page.generateElement('option',name,attribs);
 			}
 			return options;
 		}
@@ -522,10 +527,12 @@ namespace Page {
 	}
 
 	export class Subjects {
+		static sortOrder = 'alpha';
+
 		static render() {
 			Page.pageName = Pages.Subjects;
 			let markup = "";
-			let options = Page.generateMenuOptions(['alpha','visited']);
+			let options = Page.generateMenuOptions(['alpha','visited'],Subjects.sortOrder);
 			markup += Page.generateElement('select',options,{id:'sort-order',onchange:'Page.Subjects.onSortOrder()'});
 			markup += Page.generateElement('div',null,{id:'thumb-area'});
 			Page.render(markup);
@@ -552,9 +559,7 @@ namespace Page {
 				subjects = unfiltered;
 			}
 			// sort
-			let orderMenu = <HTMLSelectElement>document.getElementById('sort-order');
-			let order = orderMenu.value;
-			switch (order) {
+			switch (Subjects.sortOrder) {
 				case 'alpha': {
 					subjects.sort((a,b) => a.name<b.name ? -1 : 1);
 					break;
@@ -580,6 +585,8 @@ namespace Page {
 		}
 
 		static onSortOrder() {
+			let orderMenu = <HTMLSelectElement>document.getElementById('sort-order');
+			Subjects.sortOrder = orderMenu.value;
 			Subjects.updateThumbs();
 		}
 	}

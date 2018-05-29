@@ -260,7 +260,10 @@ var Page;
         static showSubjectThumb() { SubjectThumb.render(); }
         static render(markup) {
             let menu = Page.generateMenu();
-            document.getElementById('page-area').innerHTML = menu + markup;
+            document.getElementById('menu-links').innerHTML = menu;
+            if (markup) {
+                document.getElementById('page-area').innerHTML = markup;
+            }
         }
         static generateMenu() {
             let links = "";
@@ -312,10 +315,14 @@ var Page;
             let input = Page.generateElement('input', null, attributes);
             return Page.generateElement('label', input + name);
         }
-        static generateMenuOptions(names) {
+        static generateMenuOptions(names, selected = null) {
             let options = "";
             for (let name of names) {
-                options += Page.generateElement('option', name, { value: name });
+                let attribs = { value: name };
+                if (name === selected) {
+                    attribs['selected'] = 'selected';
+                }
+                options += Page.generateElement('option', name, attribs);
             }
             return options;
         }
@@ -747,7 +754,7 @@ var Page;
         static render() {
             Page.pageName = Pages.Subjects;
             let markup = "";
-            let options = Page.generateMenuOptions(['alpha', 'visited']);
+            let options = Page.generateMenuOptions(['alpha', 'visited'], Subjects.sortOrder);
             markup += Page.generateElement('select', options, { id: 'sort-order', onchange: 'Page.Subjects.onSortOrder()' });
             markup += Page.generateElement('div', null, { id: 'thumb-area' });
             Page.render(markup);
@@ -779,9 +786,7 @@ var Page;
                 subjects = unfiltered;
             }
             // sort
-            let orderMenu = document.getElementById('sort-order');
-            let order = orderMenu.value;
-            switch (order) {
+            switch (Subjects.sortOrder) {
                 case 'alpha': {
                     subjects.sort((a, b) => a.name < b.name ? -1 : 1);
                     break;
@@ -805,9 +810,12 @@ var Page;
             Page.showSubject(id);
         }
         static onSortOrder() {
+            let orderMenu = document.getElementById('sort-order');
+            Subjects.sortOrder = orderMenu.value;
             Subjects.updateThumbs();
         }
     }
+    Subjects.sortOrder = 'alpha';
     Page_1.Subjects = Subjects;
     class SubjectThumb {
         static render() {

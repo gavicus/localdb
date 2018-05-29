@@ -76,7 +76,7 @@
 <body>
 
 	<div class="menu">
-		<div class="links">
+		<div class="links" id="menu-links">
 			<a class="pic-list" onclick="page.showPicList()">list</a>
 			<a class="pic-new" onclick="page.showPicNew()">pic</a>
 			<a class="subject-list" onclick="page.showPage({call:'showSubjectList',args:null})">subjects</a>
@@ -273,6 +273,9 @@ let page = {
 			$('.page'),
 			function(c){ return c.classList[1]; }
 		);
+
+		Page.Page.render();
+		
 	},
 	
 	generateLastLink: function(){
