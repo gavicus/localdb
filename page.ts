@@ -33,8 +33,15 @@ namespace Page {
 				names.push('SubjectFilter');
 			}
 			if (Page.pageName === Pages.Image) { names.push('EditImage'); }
+			if (Page.pageName === Pages.Image) { names.push('Gallery'); }
+			if (Page.pageName === Pages.Gallery) { names.push(''); }
 			for (let name of names) {
 				links += Page.generateElement('a',name,{onclick:'Page.Page.show'+name+'()'});
+			}
+			if (Page.pageName === Pages.Gallery) {
+				let subject = Model.Subject.read(Subject.id);
+				let subjectName = 
+				links += Page.generateElement('a',subject.name,{onclick:'Page.Page.showSubject()'});
 			}
 			return "<div class='links'>"+links+"</div>";
 		}
@@ -77,14 +84,14 @@ namespace Page {
 			imageAttribs['src'] = imageData.url;
 			if (!imageAttribs.hasOwnProperty('style')) { imageAttribs['style'] = ''; }
 			if (imageAttribs.style.indexOf('max-width') === -1) {
-				imageAttribs['style'] += 'max-width:120;';
+				imageAttribs['style'] += 'height:80;max-width:120;';
 			}
 			let image = imageData
 				? Page.generateElement('img',null,imageAttribs)
 				: '';
 			let thumb = Page.generateElement('div',image,{
-				class:'thumb',
-				style:'max-width:120;',
+				// class:'thumb',
+				style:'max-width:120;border:1px solid white;',
 			});
 			let contents = thumb;
 			let attributes = {class:'subject-row'};
@@ -209,9 +216,12 @@ namespace Page {
 	}
 
 	export class Gallery {
+		static query: any;
 		static images: any[];
 
-		static render(query:any) {
+		static render(query:any=null) {
+			if (!query) { query = Gallery.query; }
+			else { Gallery.query = query; }
 			Page.pageName = Pages.Gallery;
 			query['type']='pic';
 			Gallery.images = Model.Data.query(query);
@@ -325,11 +335,12 @@ namespace Page {
 	export class Subject {
 		static id:number = null;
 
-		static render(id:number){
+		static render(id:number=null){
 			Page.pageName = Pages.Subject;
 			
 			if (id) { Subject.id = id; }
 			else { id = Subject.id; }
+
 			let subject = Model.Subject.read(id);
 			subject.store(); // to update visited date
 			let markup = "";
@@ -343,6 +354,12 @@ namespace Page {
 			buttons += Page.generateElement('button','Remove Subject',{onclick:"Page.Page.showConfirmRemoveSubject()"});
 			markup += Page.generateElement('div',buttons);
 
+			// add site
+			let input = Page.generateElement('input',null,{placeholder:'new site',id:'new-site'});
+			let siteBtn = Page.generateElement('button','add site',{onclick:'Page.Subject.onAddSite()'});
+			markup += Page.generateElement('div',input+siteBtn);
+
+			// tags
 			let tagNames = Model.Data.subjectTags;
 			let tagChecks = "";
 			for (let name of tagNames) {
@@ -354,6 +371,14 @@ namespace Page {
 			markup += Page.generateElement('div',tagChecks,{class:'tag-checkboxes'});
 			markup += Page.generateElement('button','Save',{onclick:'Page.Subject.onSave()'},{wrap:{}});
 			markup += Page.generateElement('button','New Tag',{onclick:'Page.Page.showNewSubjectTag()'},{wrap:{}});
+
+			// vids
+
+			// sites
+			let siteData = Model.Data.query({type:'site',subject:id});
+			for (let site of siteData) {
+				markup += Page.generateElement('a',site.url,{href:site.url,target:'_blank'},{wrap:{}});
+			}
 
 			Page.render(markup);
 		}
@@ -380,6 +405,18 @@ namespace Page {
 			}
 
 			return thumbData;
+		}
+		static onAddSite() {
+			let input = <HTMLInputElement>document.getElementById('new-site');
+			let url = input.value;
+			let data = {
+				type: "site",
+				name: "site",
+				url: url,
+				subject: Subject.id,
+			};
+			Model.Data.newEntry(data);
+			Subject.render(null);
 		}
 		static onSave() {
 			console.log('Subject.onSave');

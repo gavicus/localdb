@@ -243,8 +243,18 @@ var Page;
             if (Page.pageName === Pages.Image) {
                 names.push('EditImage');
             }
+            if (Page.pageName === Pages.Image) {
+                names.push('Gallery');
+            }
+            if (Page.pageName === Pages.Gallery) {
+                names.push('');
+            }
             for (let name of names) {
                 links += Page.generateElement('a', name, { onclick: 'Page.Page.show' + name + '()' });
+            }
+            if (Page.pageName === Pages.Gallery) {
+                let subject = Model.Subject.read(Subject.id);
+                let subjectName = links += Page.generateElement('a', subject.name, { onclick: 'Page.Page.showSubject()' });
             }
             return "<div class='links'>" + links + "</div>";
         }
@@ -289,14 +299,14 @@ var Page;
                 imageAttribs['style'] = '';
             }
             if (imageAttribs.style.indexOf('max-width') === -1) {
-                imageAttribs['style'] += 'max-width:120;';
+                imageAttribs['style'] += 'height:80;max-width:120;';
             }
             let image = imageData
                 ? Page.generateElement('img', null, imageAttribs)
                 : '';
             let thumb = Page.generateElement('div', image, {
-                class: 'thumb',
-                style: 'max-width:120;',
+                // class:'thumb',
+                style: 'max-width:120;border:1px solid white;',
             });
             let contents = thumb;
             let attributes = { class: 'subject-row' };
@@ -417,7 +427,13 @@ var Page;
     }
     Page_1.EditImage = EditImage;
     class Gallery {
-        static render(query) {
+        static render(query = null) {
+            if (!query) {
+                query = Gallery.query;
+            }
+            else {
+                Gallery.query = query;
+            }
             Page.pageName = Pages.Gallery;
             query['type'] = 'pic';
             Gallery.images = Model.Data.query(query);
@@ -517,7 +533,7 @@ var Page;
     }
     Page_1.NewSubjectTag = NewSubjectTag;
     class Subject {
-        static render(id) {
+        static render(id = null) {
             Page.pageName = Pages.Subject;
             if (id) {
                 Subject.id = id;
@@ -537,6 +553,11 @@ var Page;
             buttons += Page.generateElement('button', 'New Pic', { onclick: "Page.Page.showNewPic()" });
             buttons += Page.generateElement('button', 'Remove Subject', { onclick: "Page.Page.showConfirmRemoveSubject()" });
             markup += Page.generateElement('div', buttons);
+            // add site
+            let input = Page.generateElement('input', null, { placeholder: 'new site', id: 'new-site' });
+            let siteBtn = Page.generateElement('button', 'add site', { onclick: 'Page.Subject.onAddSite()' });
+            markup += Page.generateElement('div', input + siteBtn);
+            // tags
             let tagNames = Model.Data.subjectTags;
             let tagChecks = "";
             for (let name of tagNames) {
@@ -550,6 +571,12 @@ var Page;
             markup += Page.generateElement('div', tagChecks, { class: 'tag-checkboxes' });
             markup += Page.generateElement('button', 'Save', { onclick: 'Page.Subject.onSave()' }, { wrap: {} });
             markup += Page.generateElement('button', 'New Tag', { onclick: 'Page.Page.showNewSubjectTag()' }, { wrap: {} });
+            // vids
+            // sites
+            let siteData = Model.Data.query({ type: 'site', subject: id });
+            for (let site of siteData) {
+                markup += Page.generateElement('a', site.url, { href: site.url, target: '_blank' }, { wrap: {} });
+            }
             Page.render(markup);
         }
         static getThumbData(subjectid) {
@@ -576,6 +603,18 @@ var Page;
                 }
             }
             return thumbData;
+        }
+        static onAddSite() {
+            let input = document.getElementById('new-site');
+            let url = input.value;
+            let data = {
+                type: "site",
+                name: "site",
+                url: url,
+                subject: Subject.id,
+            };
+            Model.Data.newEntry(data);
+            Subject.render(null);
         }
         static onSave() {
             console.log('Subject.onSave');
