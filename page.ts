@@ -6,6 +6,8 @@ namespace Page {
 
 	export class Page {
 		static pageName: Pages = Pages.Debug;
+		static thumbSize = 80;
+		static thumbOuter = 120;
 
 		static showDebug() { Debug.render(); }
 		static showSubjects() { Subjects.render(); }
@@ -49,7 +51,7 @@ namespace Page {
 			return "<div class='links'>"+links+"</div>";
 		}
 
-		static generateElement(tag:string, inner:string, attributes:any={}, options:any={}) {
+		static generateElement(tag:string, inner:string, attributes:any={}, options:any={}): string {
 			let markup = "<"+tag;
 			for (let key of Object.keys(attributes)) {
 				markup += " " + key + "='" + attributes[key] + "'";
@@ -82,6 +84,26 @@ namespace Page {
 				options += Page.generateElement('option',name,attribs);
 			}
 			return options;
+		}
+
+		static generateSubjectThumbnail(subject: Model.Subject): string {
+			// image
+			let imageObject = Model.Picture.read(subject.thumb.imageId);
+			let imgStyle = 'margin-left:'+subject.thumb.marginx+';margin-top:'+subject.thumb.marginy+';max-width:'+subject.thumb.maxwidth+';';
+			let attribs = {src:imageObject.url, style:imgStyle,};
+			let imageMarkup = Page.generateElement('img',null,attribs);
+
+			// tooltip
+			let tooltipMarkup = Page.generateElement('span',subject.name,{class:'tooltiptext'});
+
+			// wrapper
+			let wrapperStyle = 'height:'+Page.thumbSize+'px;width:'+Page.thumbSize+'px;';
+			wrapperStyle += 'overflow:hidden;';
+			let onclick = 'Page.Page.showSubject('+subject.id+')';
+			let wrapperAtribs = {style:wrapperStyle,onclick:onclick,class:'tooltip'};
+			let wrapper = Page.generateElement('div',imageMarkup+tooltipMarkup,wrapperAtribs);
+
+			return wrapper;
 		}
 		
 		static generateThumbnail(imageData, onclick=null, tooltip=null, imageAttribs=null) {
@@ -347,13 +369,18 @@ namespace Page {
 			else { id = Subject.id; }
 
 			let subject = Model.Subject.read(id);
+
+			console.log('subject',subject);
+
 			subject.store(); // to update visited date
 			let markup = "";
 			markup += Page.generateElement('div',subject.name);
+			
 			markup += Page.generateThumbnail(
 				Subject.getThumbData(Subject.id),
 				"Page.Page.showGallery({subject:"+Subject.id+"})"
 			);
+			
 			let buttons = Page.generateElement('button','Gallery',{
 				onclick:"Page.Page.showGallery({subject:"+Subject.id+"})"
 			});
@@ -599,20 +626,44 @@ namespace Page {
 		static selectingul = false;
 		static selectinglr = false;
 
+		static getImageId(): number {
+			if (SubjectThumb.subject.hasOwnProperty('thumb')) {
+				if (typeof SubjectThumb.subject.thumb === 'number') {
+					return SubjectThumb.subject.thumb;
+				}
+				else {
+					return SubjectThumb.subject.thumb.imageId;
+				}
+			}
+			else {
+				let ownImages = Model.Data.query({type:'pic',subject:SubjectThumb.subject.id});
+				if (ownImages.length > 0) {
+					return ownImages[0].id;
+				} else { return null; }
+			}
+		}
+
 		static render() {
 			Page.pageName = Pages.Subjects;
 			SubjectThumb.subject = Model.Subject.read(Subject.id);
-			if (SubjectThumb.subject.thumb) {
-				SubjectThumb.thumbObject = Model.Picture.read(SubjectThumb.subject.thumb.imageId);
-			} else {
-				let ownImages = Model.Data.query({type:'pic',subject:SubjectThumb.subject.id});
-				if (ownImages.length === 0) {
-					Subject.render(Subject.id);
-					return;
-				}
-				SubjectThumb.thumbObject = ownImages[0]; // this is not a Model.Picture!
-				SubjectThumb.subject.setThumb(SubjectThumb.thumbObject.id);
-			}
+
+			// if (SubjectThumb.subject.thumb) {
+			// 	SubjectThumb.thumbObject = Model.Picture.read(SubjectThumb.subject.thumb.imageId);
+			// } else {
+			// 	let ownImages = Model.Data.query({type:'pic',subject:SubjectThumb.subject.id});
+			// 	if (ownImages.length === 0) {
+			// 		Subject.render(Subject.id);
+			// 		return;
+			// 	}
+			// 	SubjectThumb.thumbObject = ownImages[0]; // this is not a Model.Picture!
+			// 	SubjectThumb.subject.setThumb(SubjectThumb.thumbObject.id);
+			// }
+
+			let imageid = SubjectThumb.getImageId();
+			if (!imageid) { return Subject.render(Subject.id); }
+			SubjectThumb.thumbObject = Model.Picture.read(imageid);
+			SubjectThumb.subject.setThumb(imageid);
+
 			let imageObj = SubjectThumb.imageObject;
 			let markup = Page.generateElement('div',null,{id:'workingBox'});
 			let resultBox = Page.generateElement('div',null,{id:'resultBox'});
@@ -636,11 +687,21 @@ namespace Page {
 		}
 
 		static updateResult() {
-			let style = 'margin-left:'+SubjectThumb.subject.thumb.marginx+';';
-			style += 'margin-top:'+SubjectThumb.subject.thumb.marginy+';';
-			style += 'max-width:'+SubjectThumb.subject.thumb.maxwidth+';';
-			let attribs = {id:'resultImage',style:style};
-			let img = Page.generateThumbnail(SubjectThumb.thumbObject,null,null,attribs);
+
+			// let style = 'margin-left:'+SubjectThumb.subject.thumb.marginx+';';
+			// style += 'margin-top:'+SubjectThumb.subject.thumb.marginy+';';
+			// style += 'max-width:'+SubjectThumb.subject.thumb.maxwidth+';';
+			// let attribs = {id:'resultImage',style:style};
+			// let img = Page.generateThumbnail(SubjectThumb.thumbObject,null,null,attribs);
+
+			let thumbData = {
+				subjectid: Subject.id,
+				imageid: SubjectThumb.getImageId()
+			};
+			let img = Page.generateSubjectThumbnail(SubjectThumb.subject);
+
+			console.log('img',img);
+
 			let div = document.getElementById('resultBox');
 			div.innerHTML = img;
 		}
@@ -667,10 +728,13 @@ namespace Page {
 			if (SubjectThumb.selectingul) {
 				SubjectThumb.subject.thumb.marginx = -mousex*scale;
 				SubjectThumb.subject.thumb.marginy = -mousey*scale;
+
+				console.log('selecting ul', SubjectThumb.subject.thumb);
+
 				SubjectThumb.updateResult();
-				let resultImage = document.getElementById('resultImage');
-				let maxWidth = resultImage.getAttribute('max-width');
-				workingImage.setAttribute('max-width',maxWidth);
+				// let resultImage = document.getElementById('resultImage');
+				// let maxWidth = resultImage.getAttribute('max-width');
+				// workingImage.setAttribute('max-width',maxWidth);
 			} else if (SubjectThumb.selectinglr) {
 				let dist = Math.max(mousex,mousey);
 				
@@ -698,7 +762,10 @@ namespace Page {
 			SubjectThumb.onclick();
 			SubjectThumb.selectinglr = true;
 		}
-		static onBtnApply() {console.log('onBtnApply');}
+		static onBtnApply() {
+			SubjectThumb.subject.store();
+			Page.showSubject(Subject.id);
+		}
 		static onBtnCancel() {
 			Page.showSubject(Subject.id);
 		}

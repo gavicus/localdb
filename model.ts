@@ -72,14 +72,10 @@ namespace Model {
 		}
 
 		static store(content){
-			console.log('Model.Data.store',content);
-			console.log('content.id',content.id);
 			if(content.hasOwnProperty('id') && content.id){
-				console.log('updateEntry');
 				return Data.updateEntry(content);
 			}
 			else {
-				console.log('newEntry');
 				return Data.newEntry(content);
 			}
 		}
@@ -137,7 +133,6 @@ namespace Model {
 		}
 
 		static initFromData(data:any): Picture {
-			console.log('initFromData',data);
 			let pic = new Picture(data.url);
 			pic.id = data.id;
 			pic.subjectid = data.subject;
@@ -179,7 +174,7 @@ namespace Model {
 		}
 
 		setThumb(imageId:number) {
-			this.thumb = { imageId:imageId, marginx:0, marginy:0, maxwidth:120 };
+			this.thumb = { imageId:imageId, marginx:0, marginy:0, maxwidth:Page.Page.thumbOuter };
 		}
 
 		store(): void {
