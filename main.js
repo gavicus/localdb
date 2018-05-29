@@ -545,18 +545,18 @@ var Page;
             subject.store(); // to update visited date
             let markup = "";
             markup += Page.generateElement('div', subject.name);
-            markup += Page.generateThumbnail(Subject.getThumbData(Subject.id));
+            markup += Page.generateThumbnail(Subject.getThumbData(Subject.id), "Page.Page.showGallery({subject:" + Subject.id + "})");
             let buttons = Page.generateElement('button', 'Gallery', {
                 onclick: "Page.Page.showGallery({subject:" + Subject.id + "})"
             });
             buttons += Page.generateElement('button', 'Thumbnail', { onclick: "Page.Page.showSubjectThumb()" });
             buttons += Page.generateElement('button', 'New Pic', { onclick: "Page.Page.showNewPic()" });
             buttons += Page.generateElement('button', 'Remove Subject', { onclick: "Page.Page.showConfirmRemoveSubject()" });
-            markup += Page.generateElement('div', buttons);
+            markup += Page.generateElement('div', buttons, { class: 'section' });
             // add site
             let input = Page.generateElement('input', null, { placeholder: 'new site', id: 'new-site' });
             let siteBtn = Page.generateElement('button', 'add site', { onclick: 'Page.Subject.onAddSite()' });
-            markup += Page.generateElement('div', input + siteBtn);
+            markup += Page.generateElement('div', input + siteBtn, { class: 'section' });
             // tags
             let tagNames = Model.Data.subjectTags;
             let tagChecks = "";
@@ -566,16 +566,21 @@ var Page;
                     attributes['checked'] = true;
                 }
                 let input = Page.generateElement('input', null, attributes);
-                tagChecks += Page.generateElement('label', input + name);
+                tagChecks += Page.generateElement('label', input + name, { class: 'tag-check-wrapper' });
             }
-            markup += Page.generateElement('div', tagChecks, { class: 'tag-checkboxes' });
-            markup += Page.generateElement('button', 'Save', { onclick: 'Page.Subject.onSave()' }, { wrap: {} });
-            markup += Page.generateElement('button', 'New Tag', { onclick: 'Page.Page.showNewSubjectTag()' }, { wrap: {} });
+            let checkboxes = Page.generateElement('div', tagChecks, { class: 'tag-checkboxes' });
+            let newtagbtn = Page.generateElement('button', 'New Tag', { onclick: 'Page.Page.showNewSubjectTag()' });
+            markup += Page.generateElement('div', checkboxes + newtagbtn, { class: 'section' });
+            // markup += Page.generateElement('button','Save',{onclick:'Page.Subject.onSave()'},{wrap:{}});
             // vids
             // sites
             let siteData = Model.Data.query({ type: 'site', subject: id });
+            let sitelinks = '';
             for (let site of siteData) {
-                markup += Page.generateElement('a', site.url, { href: site.url, target: '_blank' }, { wrap: {} });
+                sitelinks += Page.generateElement('a', site.url, { href: site.url, target: '_blank' }, { wrap: {} });
+            }
+            if (sitelinks) {
+                markup += Page.generateElement('div', sitelinks, { class: 'section' });
             }
             Page.render(markup);
         }
