@@ -28,6 +28,12 @@ namespace Page {
 			if (markup) {
 				document.getElementById('page-area').innerHTML = markup;
 			}
+			if (Subjects.alt) {
+				document.getElementById('alt-toggle').style.fontWeight='bold';
+			}
+			else {
+				document.getElementById('alt-toggle').style.fontWeight='normal';
+			}
 		}
 
 		static generateMenu() {
@@ -41,7 +47,7 @@ namespace Page {
 			if (Page.pageName === Pages.Image) { names.push('Gallery'); }
 			if (Page.pageName === Pages.Gallery) { names.push(''); }
 
-			links += Page.generateElement('a','alt',{onclick:'Page.Subjects.toggleAltMode()'});
+			links += Page.generateElement('a','alt',{onclick:'Page.Subjects.toggleAltMode()',id:'alt-toggle'});
 
 			for (let name of names) {
 				links += Page.generateElement('a',name,{onclick:'Page.Page.show'+name+'()'});
