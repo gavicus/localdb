@@ -316,12 +316,6 @@ var Page;
             if (markup) {
                 document.getElementById('page-area').innerHTML = markup;
             }
-            if (Subjects.alt) {
-                document.getElementById('alt-toggle').style.fontWeight = 'bold';
-            }
-            else {
-                document.getElementById('alt-toggle').style.fontWeight = 'normal';
-            }
         }
         static generateMenu() {
             let links = "";
@@ -339,7 +333,10 @@ var Page;
             if (Page.pageName === Pages.Gallery) {
                 names.push('');
             }
-            links += Page.generateElement('a', 'alt', { onclick: 'Page.Subjects.toggleAltMode()', id: 'alt-toggle' });
+            links += Page.generateElement('a', 'alt', {
+                onclick: 'Page.Subjects.toggleAltMode()',
+                class: Subjects.alt ? 'alt-selected' : '',
+            });
             for (let name of names) {
                 links += Page.generateElement('a', name, { onclick: 'Page.Page.show' + name + '()' });
             }
@@ -670,9 +667,18 @@ var Page;
             buttons += Page.generateElement('button', 'Remove Subject', { onclick: "Page.Page.showConfirmRemoveSubject()" });
             markup += Page.generateElement('div', buttons, { class: 'section' });
             // tabs
-            markup += Page.generateElement('button', 'vids', { onclick: 'Page.Subject.onToggleSection("vids")' });
-            markup += Page.generateElement('button', 'tags', { onclick: 'Page.Subject.onToggleSection("tags")' });
-            markup += Page.generateElement('button', 'sites', { onclick: 'Page.Subject.onToggleSection("sites")' });
+            markup += Page.generateElement('button', 'vids', {
+                onclick: 'Page.Subject.onToggleSection("vids")',
+                class: Subject.openSection === 'vids' ? 'selected' : '',
+            });
+            markup += Page.generateElement('button', 'tags', {
+                onclick: 'Page.Subject.onToggleSection("tags")',
+                class: Subject.openSection === 'tags' ? 'selected' : '',
+            });
+            markup += Page.generateElement('button', 'sites', {
+                onclick: 'Page.Subject.onToggleSection("sites")',
+                class: Subject.openSection === 'sites' ? 'selected' : '',
+            });
             // vids
             let vidinput = Page.generateElement('input', null, { placeholder: 'new vid', id: 'new-vid' });
             let vidthumbinput = Page.generateElement('input', null, { placeholder: 'new vid thumb', id: 'new-vid-thumb' });
