@@ -121,9 +121,10 @@ namespace Page {
 			// wrapper
 			let wrapperStyle = 'height:'+Page.thumbSize+'px;width:'+Page.thumbSize+'px;';
 			wrapperStyle += 'overflow:hidden;display:inline-block;';
+			wrapperStyle += 'cursor:pointer;';
 			let onclick = 'Page.Page.showSubject('+subject.id+')';
 			let wrapperAtribs = {style:wrapperStyle,onclick:onclick,class:'tooltip'};
-			let wrapper = Page.generateElement('div',imageMarkup+tooltipMarkup,wrapperAtribs);
+			let wrapper = Page.generateElement('div',tooltipMarkup+imageMarkup,wrapperAtribs);
 
 			return wrapper;
 		}
@@ -139,7 +140,6 @@ namespace Page {
 				? Page.generateElement('img',null,imageAttribs)
 				: '';
 			let thumb = Page.generateElement('div',image,{
-				// class:'thumb',
 				style:'max-width:120;border:1px solid white;',
 			});
 			let contents = thumb;
