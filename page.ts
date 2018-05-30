@@ -40,6 +40,9 @@ namespace Page {
 			if (Page.pageName === Pages.Image) { names.push('EditImage'); }
 			if (Page.pageName === Pages.Image) { names.push('Gallery'); }
 			if (Page.pageName === Pages.Gallery) { names.push(''); }
+
+			links += Page.generateElement('a','alt',{onclick:'Page.Subjects.toggleAltMode()'});
+
 			for (let name of names) {
 				links += Page.generateElement('a',name,{onclick:'Page.Page.show'+name+'()'});
 			}
@@ -578,7 +581,6 @@ namespace Page {
 			Page.render(markup);
 			Subjects.updateThumbs();
 		}
-
 		static updateThumbs() {
 			let markup = "";
 			let query = {type:'subject'};
@@ -626,15 +628,17 @@ namespace Page {
 			let element = document.getElementById('thumb-area');
 			element.innerHTML = markup;
 		}
-
 		static onClickSubject(id) {
 			Page.showSubject(id);
 		}
-
 		static onSortOrder() {
 			let orderMenu = <HTMLSelectElement>document.getElementById('sort-order');
 			Subjects.sortOrder = orderMenu.value;
 			Subjects.updateThumbs();
+		}
+		static toggleAltMode() {
+			Subjects.alt = !Subjects.alt;
+			Subjects.render();
 		}
 	}
 

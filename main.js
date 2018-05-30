@@ -333,6 +333,7 @@ var Page;
             if (Page.pageName === Pages.Gallery) {
                 names.push('');
             }
+            links += Page.generateElement('a', 'alt', { onclick: 'Page.Subjects.toggleAltMode()' });
             for (let name of names) {
                 links += Page.generateElement('a', name, { onclick: 'Page.Page.show' + name + '()' });
             }
@@ -852,7 +853,6 @@ var Page;
             let query = { type: 'subject' };
             let unfiltered;
             if (Subjects.alt) {
-                // unfiltered = Model.Data.query(query);
                 unfiltered = Model.Subject.getSubjectsWithTag('alt');
             }
             else {
@@ -892,10 +892,6 @@ var Page;
             }
             // create thumbs
             for (let subject of subjects) {
-                // let subject = Model.Subject.initFromData(data);
-                // let thumb = Subject.getThumbData(subject.id);
-                // let onclick = "Page.Subjects.onClickSubject("+subject.id+")";
-                // markup += Page.generateThumbnail(thumb,onclick,subject.name);
                 markup += Page.generateSubjectThumbnail(subject);
             }
             let element = document.getElementById('thumb-area');
@@ -908,6 +904,10 @@ var Page;
             let orderMenu = document.getElementById('sort-order');
             Subjects.sortOrder = orderMenu.value;
             Subjects.updateThumbs();
+        }
+        static toggleAltMode() {
+            Subjects.alt = !Subjects.alt;
+            Subjects.render();
         }
     }
     Subjects.sortOrder = 'alpha';
