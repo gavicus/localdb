@@ -129,7 +129,9 @@ namespace Model {
 		}
 		
 		static read(id:number): Picture {
-			return Picture.initFromData(Model.Data.getEntry(id));
+			let data = Model.Data.getEntry(id);
+			if (!data) { return null; }
+			return Picture.initFromData(data);
 		}
 
 		static getSubjectPics(subjectid: number): Picture[] {
@@ -142,6 +144,7 @@ namespace Model {
 		}
 
 		static initFromData(data:any): Picture {
+			if (!data) { return null; }
 			let pic = new Picture(data.url);
 			pic.id = data.id;
 			pic.subjectid = data.subject;

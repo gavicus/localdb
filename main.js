@@ -133,7 +133,11 @@ var Model;
             this.id = data.id;
         }
         static read(id) {
-            return Picture.initFromData(Model.Data.getEntry(id));
+            let data = Model.Data.getEntry(id);
+            if (!data) {
+                return null;
+            }
+            return Picture.initFromData(data);
         }
         static getSubjectPics(subjectid) {
             let pics = [];
@@ -144,6 +148,9 @@ var Model;
             return pics;
         }
         static initFromData(data) {
+            if (!data) {
+                return null;
+            }
             let pic = new Picture(data.url);
             pic.id = data.id;
             pic.subjectid = data.subject;
@@ -385,11 +392,22 @@ var Page;
         static generateSubjectThumbnail(subject) {
             // image
             let imageMarkup = '';
-            if (subject.thumb) {
-                let imageObject = Model.Picture.read(subject.thumb.imageId);
+            let imageObject = null;
+            if (subject.thumb && subject.thumb.imageId) {
+                imageObject = Model.Picture.read(subject.thumb.imageId);
+            }
+            if (imageObject) {
                 let imgStyle = 'margin-left:' + subject.thumb.marginx + ';margin-top:' + subject.thumb.marginy + ';max-width:' + subject.thumb.maxwidth + ';';
                 let attribs = { src: imageObject.url, style: imgStyle, };
                 imageMarkup = Page.generateElement('img', null, attribs);
+            }
+            else {
+                let style = 'width:80px;height:80px;padding:10px;';
+                style += 'background-color:#888;';
+                style += 'color:white;font-size:24;font-family:sans-serif;font-weight:bold;';
+                style += 'text-transform: uppercase;';
+                let attribs = { style: style };
+                imageMarkup = Page.generateElement('div', subject.name[0], attribs);
             }
             // tooltip
             let tooltipMarkup = Page.generateElement('span', subject.name, { class: 'tooltiptext' });
@@ -616,6 +634,9 @@ var Page;
             let element = document.getElementById('subject-name');
             let name = element.value;
             let subject = new Model.Subject(name);
+            if (Subjects.alt) {
+                subject.setTag('alt');
+            }
             subject.store();
             Page.showSubject(subject.id);
         }
@@ -923,7 +944,7 @@ var Page;
         }
     }
     Subjects.sortOrder = 'alpha';
-    Subjects.alt = false;
+    Subjects.alt = true;
     Page_1.Subjects = Subjects;
     class SubjectThumb {
         static getImageId() {
