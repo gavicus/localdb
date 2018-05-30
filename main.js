@@ -549,7 +549,8 @@ var Page;
             let imageData = Model.Data.getEntry(EditImage.imageId);
             let markup = Page.generateThumbnail(imageData);
             let subject = Model.Data.getEntry(imageData.subject);
-            markup += Page.generateElement('div', 'subject: ' + subject.name);
+            markup += Page.generateElement('div', 'image id: ' + imageData.id);
+            markup += Page.generateElement('div', 'subject: ' + subject.name + ' (' + subject.id + ')');
             markup += Page.generateElement('button', 'remove image', { onclick: "Page.EditImage.onRemove()" });
             Page.render(markup);
         }
@@ -680,7 +681,7 @@ var Page;
             let subject = Model.Subject.read(id);
             subject.store(); // to update visited date
             let markup = "";
-            markup += Page.generateElement('div', subject.name);
+            markup += Page.generateElement('div', subject.name + ' (' + subject.id + ')');
             markup += Page.generateSubjectThumbnail(subject);
             let buttons = Page.generateElement('button', 'Gallery', {
                 onclick: "Page.Page.showGallery({subject:" + Subject.id + "})"

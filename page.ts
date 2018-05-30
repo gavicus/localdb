@@ -254,7 +254,8 @@ namespace Page {
 			let imageData = Model.Data.getEntry(EditImage.imageId);
 			let markup = Page.generateThumbnail(imageData);
 			let subject = Model.Data.getEntry(imageData.subject);
-			markup += Page.generateElement('div','subject: '+subject.name);
+			markup += Page.generateElement('div','image id: '+imageData.id);
+			markup += Page.generateElement('div','subject: '+subject.name+' ('+subject.id+')');
 			markup += Page.generateElement('button','remove image',{onclick:"Page.EditImage.onRemove()"});
 			Page.render(markup);
 		}
@@ -396,7 +397,7 @@ namespace Page {
 
 			subject.store(); // to update visited date
 			let markup = "";
-			markup += Page.generateElement('div',subject.name);
+			markup += Page.generateElement('div',subject.name+' ('+subject.id+')');
 			
 			markup += Page.generateSubjectThumbnail(subject);
 			
