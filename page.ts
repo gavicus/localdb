@@ -108,7 +108,7 @@ namespace Page {
 				let style = 'width:80px;height:80px;padding:10px 0 0 10px;';
 				style += 'background-color:#888;';
 				style += 'color:#aaa;font-size:42;font-family:sans-serif;font-weight:bold;';
-				// style += 'text-transform: uppercase;';
+				style += 'text-transform: capitalize;';
 				style += 'box-shadow: inset 0px 0px 10px 2px white;';
 				style += 'box-sizing: border-box';
 				let attribs = {style:style,class:'thumb-placeholder'}
