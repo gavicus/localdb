@@ -105,12 +105,14 @@ namespace Page {
 				imageMarkup = Page.generateElement('img',null,attribs);
 			}
 			else {
-				let style = 'width:80px;height:80px;padding:10px;';
+				let style = 'width:80px;height:80px;padding:10px 0 0 10px;';
 				style += 'background-color:#888;';
-				style += 'color:white;font-size:24;font-family:sans-serif;font-weight:bold;';
-				style += 'text-transform: uppercase;';
-				let attribs = {style:style}
-				imageMarkup = Page.generateElement('div',subject.name[0],attribs);
+				style += 'color:#aaa;font-size:42;font-family:sans-serif;font-weight:bold;';
+				// style += 'text-transform: uppercase;';
+				style += 'box-shadow: inset 0px 0px 10px 2px white;';
+				style += 'box-sizing: border-box';
+				let attribs = {style:style,class:'thumb-placeholder'}
+				imageMarkup = Page.generateElement('div',subject.name.substr(0,2),attribs);
 			}
 
 			// tooltip
