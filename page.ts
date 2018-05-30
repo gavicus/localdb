@@ -567,6 +567,7 @@ namespace Page {
 
 	export class Subjects {
 		static sortOrder = 'alpha';
+		static alt = false;
 
 		static render() {
 			Page.pageName = Pages.Subjects;
@@ -581,15 +582,23 @@ namespace Page {
 		static updateThumbs() {
 			let markup = "";
 			let query = {type:'subject'};
-			let unfiltered = Model.Data.query(query);
-			let subjects = [];
+			let unfiltered: Model.Subject[];
+
+			if (Subjects.alt) {
+				unfiltered = Model.Subject.getSubjectsWithTag('alt');
+			}
+			else {
+				unfiltered = Model.Subject.getSubjectsWithoutTag('alt');
+			}
+			let subjects: Model.Subject[] = [];
+
 			// apply filter
 			if (SubjectFilter.filterOn) {
 				for (let subject of unfiltered) {
 					let subjectOk = true;
 					for (let toggleName of Object.keys(SubjectFilter.toggles)) {
 						if (SubjectFilter.toggles[toggleName]) {
-							if (subject.tags.indexOf(toggleName) === -1) { subjectOk = false; continue; }
+							if (subject.hasTag(toggleName)) { subjectOk = false; continue; }
 						}
 					}
 					if (subjectOk) { subjects.push (subject); }
@@ -597,6 +606,7 @@ namespace Page {
 			} else {
 				subjects = unfiltered;
 			}
+
 			// sort
 			switch (Subjects.sortOrder) {
 				case 'alpha': {
@@ -608,16 +618,10 @@ namespace Page {
 					break;
 				}
 			}
+
 			// create thumbs
-			for(let data of subjects){
-				let subject = Model.Subject.initFromData(data);
-
-				// let thumb = Subject.getThumbData(subject.id);
-				// let onclick = "Page.Subjects.onClickSubject("+subject.id+")";
-				// markup += Page.generateThumbnail(thumb,onclick,subject.name);
-
+			for(let subject of subjects){
 				markup += Page.generateSubjectThumbnail(subject);
-
 			}
 			let element = document.getElementById('thumb-area');
 			element.innerHTML = markup;

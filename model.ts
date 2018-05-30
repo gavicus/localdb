@@ -154,19 +154,23 @@ namespace Model {
 		public type = 'subject';
 		public thumb: any;
 		public id: number;
+		public name: string;
 		public visited: Date;
 		public tags: string[] = [];
 
-		constructor(public name: string) {}
+		constructor(name: string) {
+			this.name = name;
+		}
 
 		static read(id: number): Subject {
 			let data = Model.Data.getEntry(id);
 			return Subject.initFromData(data);
 		}
-		
+
 		static initFromData(data:any): Subject {
 			let subject = new Subject(data.name);
 			subject.id = data.id;
+			subject.name = data.name;
 			subject.thumb = data.thumb;
 
 			if (typeof subject.thumb === 'undefined') {
@@ -193,11 +197,53 @@ namespace Model {
 			return subject;
 		}
 
-		setThumb(imageId:number) {
+		static getSubjects(): Subject[] {
+			let data: any[] = Data.query({type:'subject'});
+			let subjects: Subject[] = [];
+			for (let datum of data) {
+				subjects.push(Subject.initFromData(datum));
+			}
+			return subjects;
+		}
+
+		static getSubjectsWithTag(tag: string): Subject[] {
+			let data: any[] = Data.query({type:'subject'});
+			let subjects: Subject[] = [];
+			for (let datum of data) {
+				let s = Subject.initFromData(datum);
+				if (s.hasTag(tag)) {
+					subjects.push(Subject.initFromData(datum));
+				}
+			}
+			return subjects;
+		}
+
+		static getSubjectsWithoutTag(tag: string): Subject[] {
+			let data: any[] = Data.query({type:'subject'});
+			let subjects: Subject[] = [];
+			for (let datum of data) {
+				let s = Subject.initFromData(datum);
+				if (!s.hasTag(tag)) {
+					subjects.push(Subject.initFromData(datum));
+				}
+			}
+			return subjects;
+		}
+
+		public hasTag(name: string): boolean {
+			return this.tags.indexOf(name) > -1;
+		}
+
+		public setTag(name: string): void {
+			if (this.hasTag(name)) { return; }
+			this.tags.push(name);
+		}
+		
+		public setThumb(imageId:number) {
 			this.thumb = { imageId:imageId, marginx:0, marginy:0, maxwidth:Page.Page.thumbOuter };
 		}
 
-		store(): void {
+		public store(): void {
 			this.visited = new Date();
 			let content = {
 				type: this.type,

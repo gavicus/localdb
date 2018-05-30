@@ -153,9 +153,9 @@ var Model;
     Model.Picture = Picture;
     class Subject {
         constructor(name) {
-            this.name = name;
             this.type = 'subject';
             this.tags = [];
+            this.name = name;
         }
         static read(id) {
             let data = Model.Data.getEntry(id);
@@ -164,6 +164,7 @@ var Model;
         static initFromData(data) {
             let subject = new Subject(data.name);
             subject.id = data.id;
+            subject.name = data.name;
             subject.thumb = data.thumb;
             if (typeof subject.thumb === 'undefined') {
                 let pics = Picture.getSubjectPics(subject.id);
@@ -187,6 +188,45 @@ var Model;
                 subject.tags = [];
             }
             return subject;
+        }
+        static getSubjects() {
+            let data = Data.query({ type: 'subject' });
+            let subjects = [];
+            for (let datum of data) {
+                subjects.push(Subject.initFromData(datum));
+            }
+            return subjects;
+        }
+        static getSubjectsWithTag(tag) {
+            let data = Data.query({ type: 'subject' });
+            let subjects = [];
+            for (let datum of data) {
+                let s = Subject.initFromData(datum);
+                if (s.hasTag(tag)) {
+                    subjects.push(Subject.initFromData(datum));
+                }
+            }
+            return subjects;
+        }
+        static getSubjectsWithoutTag(tag) {
+            let data = Data.query({ type: 'subject' });
+            let subjects = [];
+            for (let datum of data) {
+                let s = Subject.initFromData(datum);
+                if (!s.hasTag(tag)) {
+                    subjects.push(Subject.initFromData(datum));
+                }
+            }
+            return subjects;
+        }
+        hasTag(name) {
+            return this.tags.indexOf(name) > -1;
+        }
+        setTag(name) {
+            if (this.hasTag(name)) {
+                return;
+            }
+            this.tags.push(name);
         }
         setThumb(imageId) {
             this.thumb = { imageId: imageId, marginx: 0, marginy: 0, maxwidth: Page.Page.thumbOuter };
@@ -810,7 +850,14 @@ var Page;
         static updateThumbs() {
             let markup = "";
             let query = { type: 'subject' };
-            let unfiltered = Model.Data.query(query);
+            let unfiltered;
+            if (Subjects.alt) {
+                // unfiltered = Model.Data.query(query);
+                unfiltered = Model.Subject.getSubjectsWithTag('alt');
+            }
+            else {
+                unfiltered = Model.Subject.getSubjectsWithoutTag('alt');
+            }
             let subjects = [];
             // apply filter
             if (SubjectFilter.filterOn) {
@@ -818,7 +865,7 @@ var Page;
                     let subjectOk = true;
                     for (let toggleName of Object.keys(SubjectFilter.toggles)) {
                         if (SubjectFilter.toggles[toggleName]) {
-                            if (subject.tags.indexOf(toggleName) === -1) {
+                            if (subject.hasTag(toggleName)) {
                                 subjectOk = false;
                                 continue;
                             }
@@ -844,8 +891,8 @@ var Page;
                 }
             }
             // create thumbs
-            for (let data of subjects) {
-                let subject = Model.Subject.initFromData(data);
+            for (let subject of subjects) {
+                // let subject = Model.Subject.initFromData(data);
                 // let thumb = Subject.getThumbData(subject.id);
                 // let onclick = "Page.Subjects.onClickSubject("+subject.id+")";
                 // markup += Page.generateThumbnail(thumb,onclick,subject.name);
@@ -864,6 +911,7 @@ var Page;
         }
     }
     Subjects.sortOrder = 'alpha';
+    Subjects.alt = false;
     Page_1.Subjects = Subjects;
     class SubjectThumb {
         static getImageId() {
