@@ -552,12 +552,16 @@ var Page;
             let subject = Model.Data.getEntry(imageData.subject);
             markup += Page.generateElement('div', 'image id: ' + imageData.id);
             markup += Page.generateElement('div', 'subject: ' + subject.name + ' (' + subject.id + ')');
+            markup += Page.generateElement('button', 'set subject thumb', { onclick: "Page.EditImage.onSetThumb()" });
             markup += Page.generateElement('button', 'remove image', { onclick: "Page.EditImage.onRemove()" });
             Page.render(markup);
         }
         static onRemove() {
             Model.Data.removeEntry(EditImage.imageId);
             Page.showGallery({ subject: Subject.id });
+        }
+        static onSetThumb() {
+            Gallery.onChooseThumb(EditImage.imageId);
         }
     }
     Page_1.EditImage = EditImage;
