@@ -389,18 +389,14 @@ namespace Page {
 
 		static render(id:number=null){
 			Page.pageName = Pages.Subject;
-			
 			if (id) { Subject.id = id; }
 			else { id = Subject.id; }
-
 			let subject = Model.Subject.read(id);
-
 			subject.store(); // to update visited date
+
 			let markup = "";
 			markup += Page.generateElement('div',subject.name+' ('+subject.id+')');
-			
 			markup += Page.generateSubjectThumbnail(subject, "Page.Page.showGallery({subject:"+Subject.id+"})");
-			
 			let buttons = Page.generateElement('button','Gallery',{
 				onclick:"Page.Page.showGallery({subject:"+Subject.id+"})"
 			});
@@ -408,8 +404,16 @@ namespace Page {
 			buttons += Page.generateElement('button','Remove Subject',{onclick:"Page.Page.showConfirmRemoveSubject()"});
 			markup += Page.generateElement('div',buttons,{class:'section'});
 
-			// tabs
-			markup += Page.generateElement('button','vids',{
+			markup += Subject.genTabButtons();
+			markup += Subject.genVidsTab();
+			markup += Subject.genTagsTab(subject);
+			markup += Subject.genSitesTab();
+			markup += Subject.genNewPicTab();
+
+			Page.render(markup);
+		}
+		static genTabButtons(): string {
+			let markup = Page.generateElement('button','vids',{
 				onclick:'Page.Subject.onToggleSection("vids")',
 				class: Subject.openSection === 'vids' ? 'selected' : '',
 			});
@@ -425,29 +429,27 @@ namespace Page {
 				onclick:'Page.Subject.onToggleSection("newpic")',
 				class: Subject.openSection === 'newpic' ? 'selected' : '',
 			});
-
-			// vids
+			return markup;
+		}
+		static genVidsTab(): string {
 			let vidinput = Page.generateElement('input',null,{placeholder:'new vid',id:'new-vid'});
 			let vidthumbinput = Page.generateElement('input',null,{placeholder:'new vid thumb',id:'new-vid-thumb'});
 			let vidBtn = Page.generateElement('button','add vid',{onclick:'Page.Subject.onAddVid()'});
 			let vidMarkup = Page.generateElement('div',vidinput+vidthumbinput+vidBtn,{class:'section'});
-
 			let vids = Model.Vid.getVids(Subject.id);
 			if (vids.length > 0) {
 				let vidlinks = '';
 				for (let vid of vids) {
-					// let thumbimg = Page.generateElement('img',null,{src:vid.thumburl});
 					let thumbimg = Page.generateThumbnail({url:vid.thumburl});
 					vidlinks += Page.generateElement('a',thumbimg,{target:'_blank',href:vid.url});
 				}
 				vidMarkup += Page.generateElement('div',vidlinks,{class:'section'});
 			}
-
 			let style = 'display:';
 			style += Subject.openSection === 'vids' ? 'block;' : 'none;';
-			markup += Page.generateElement('div',vidMarkup,{style:style});
-
-			// tags
+			return Page.generateElement('div',vidMarkup,{style:style});
+		}
+		static genTagsTab(subject: Model.Subject): string {
 			let tagNames = Model.Data.subjectTags;
 			let tagChecks = "";
 			for (let name of tagNames) {
@@ -459,17 +461,15 @@ namespace Page {
 			let checkboxes = Page.generateElement('div',tagChecks,{class:'tag-checkboxes'});
 			let newtagbtn = Page.generateElement('button','New Tag',{onclick:'Page.Page.showNewSubjectTag()'});
 			let tagMarkup = Page.generateElement('div',checkboxes+newtagbtn,{class:'section'});
-
-			style = 'display:';
+			let style = 'display:';
 			style += Subject.openSection === 'tags' ? 'block;' : 'none;';
-			markup += Page.generateElement('div',tagMarkup,{style:style});
-
-			// sites
+			return Page.generateElement('div',tagMarkup,{style:style});
+		}
+		static genSitesTab(): string {
 			let input = Page.generateElement('input',null,{placeholder:'new site',id:'new-site'});
 			let siteBtn = Page.generateElement('button','add site',{onclick:'Page.Subject.onAddSite()'});
 			let siteMarkup = Page.generateElement('div',input+siteBtn,{class:'section'});
-
-			let siteData = Model.Data.query({type:'site',subject:id});
+			let siteData = Model.Data.query({type:'site',subject:Subject.id});
 			let sitelinks = '';
 			for (let site of siteData) {
 				sitelinks += Page.generateElement('a',site.url,{href:site.url,target:'_blank'},{wrap:{}});
@@ -477,20 +477,17 @@ namespace Page {
 			if (sitelinks) {
 				siteMarkup += Page.generateElement('div',sitelinks,{class:'section'});
 			}
-
-			style = 'display:';
+			let style = 'display:';
 			style += Subject.openSection === 'sites' ? 'block;' : 'none;';
-			markup += Page.generateElement('div',siteMarkup,{style:style});
-
-			// new pic
+			return Page.generateElement('div',siteMarkup,{style:style});
+		}
+		static genNewPicTab(): string {
 			let newpicinput = Page.generateElement('input',null,{placeholder:'image url',id:'newpic-url'});
 			let newpicbutton = Page.generateElement('button','submit',{onclick:'Page.Subject.onNewPic()'});
 			let newpicmarkup = Page.generateElement('div',newpicinput+newpicbutton,{class:'section'});
-			style = 'display:';
+			let style = 'display:';
 			style += Subject.openSection === 'newpic' ? 'block;' : 'none;';
-			markup += Page.generateElement('div',newpicmarkup,{style:style});
-
-			Page.render(markup);
+			return Page.generateElement('div',newpicmarkup,{style:style});
 		}
 		static getThumbData(subjectid){
 			let subjectData = Model.Data.getEntry(subjectid);
