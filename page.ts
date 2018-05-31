@@ -14,7 +14,7 @@ namespace Page {
 		static showSubject(id) { Subject.render(id); }
 		static showGallery(query) { Gallery.render(query); }
 		static showImage(id) { Image.render(id); }
-		static showNewPic() { NewPic.render(); }
+		// static showNewPic() { NewPic.render(); }
 		static showNewSubject() { NewSubject.render(); }
 		static showEditImage() { EditImage.render(); }
 		static showConfirmRemoveSubject() { ConfirmRemoveSubject.render() }
@@ -92,7 +92,7 @@ namespace Page {
 			return options;
 		}
 
-		static generateSubjectThumbnail(subject: Model.Subject): string {
+		static generateSubjectThumbnail(subject: Model.Subject, onclick: string = null): string {
 			// image
 			let imageMarkup = '';
 			let imageObject: Model.Picture = null;
@@ -122,7 +122,7 @@ namespace Page {
 			let wrapperStyle = 'height:'+Page.thumbSize+'px;width:'+Page.thumbSize+'px;';
 			wrapperStyle += 'overflow:hidden;display:inline-block;';
 			wrapperStyle += 'cursor:pointer;';
-			let onclick = 'Page.Page.showSubject('+subject.id+')';
+			if (!onclick) { onclick = 'Page.Page.showSubject('+subject.id+')'; }
 			let wrapperAtribs = {style:wrapperStyle,onclick:onclick,class:'tooltip'};
 			let wrapper = Page.generateElement('div',tooltipMarkup+imageMarkup,wrapperAtribs);
 
@@ -399,7 +399,7 @@ namespace Page {
 			let markup = "";
 			markup += Page.generateElement('div',subject.name+' ('+subject.id+')');
 			
-			markup += Page.generateSubjectThumbnail(subject);
+			markup += Page.generateSubjectThumbnail(subject, "Page.Page.showGallery({subject:"+Subject.id+"})");
 			
 			let buttons = Page.generateElement('button','Gallery',{
 				onclick:"Page.Page.showGallery({subject:"+Subject.id+"})"
@@ -483,8 +483,9 @@ namespace Page {
 			markup += Page.generateElement('div',siteMarkup,{style:style});
 
 			// new pic
-			let newpicmarkup = Page.generateElement('input',null,{placeholder:'image url',id:'newpic-url'},{wrap:{}});
-			newpicmarkup += Page.generateElement('button','submit',{onclick:'Page.Subject.onNewPic()'},{wrap:{}});
+			let newpicinput = Page.generateElement('input',null,{placeholder:'image url',id:'newpic-url'});
+			let newpicbutton = Page.generateElement('button','submit',{onclick:'Page.Subject.onNewPic()'});
+			let newpicmarkup = Page.generateElement('div',newpicinput+newpicbutton,{class:'section'});
 			style = 'display:';
 			style += Subject.openSection === 'newpic' ? 'block;' : 'none;';
 			markup += Page.generateElement('div',newpicmarkup,{style:style});
