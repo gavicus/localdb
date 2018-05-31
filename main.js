@@ -687,7 +687,7 @@ var Page;
                 onclick: "Page.Page.showGallery({subject:" + Subject.id + "})"
             });
             buttons += Page.generateElement('button', 'Thumbnail', { onclick: "Page.Page.showSubjectThumb()" });
-            buttons += Page.generateElement('button', 'New Pic', { onclick: "Page.Page.showNewPic()" });
+            // buttons += Page.generateElement('button','New Pic',{onclick:"Page.Page.showNewPic()"});
             buttons += Page.generateElement('button', 'Remove Subject', { onclick: "Page.Page.showConfirmRemoveSubject()" });
             markup += Page.generateElement('div', buttons, { class: 'section' });
             // tabs
@@ -702,6 +702,10 @@ var Page;
             markup += Page.generateElement('button', 'sites', {
                 onclick: 'Page.Subject.onToggleSection("sites")',
                 class: Subject.openSection === 'sites' ? 'selected' : '',
+            });
+            markup += Page.generateElement('button', 'new pic', {
+                onclick: 'Page.Subject.onToggleSection("newpic")',
+                class: Subject.openSection === 'newpic' ? 'selected' : '',
             });
             // vids
             let vidinput = Page.generateElement('input', null, { placeholder: 'new vid', id: 'new-vid' });
@@ -753,6 +757,12 @@ var Page;
             style = 'display:';
             style += Subject.openSection === 'sites' ? 'block;' : 'none;';
             markup += Page.generateElement('div', siteMarkup, { style: style });
+            // new pic
+            let newpicmarkup = Page.generateElement('input', null, { placeholder: 'image url', id: 'newpic-url' }, { wrap: {} });
+            newpicmarkup += Page.generateElement('button', 'submit', { onclick: 'Page.Subject.onNewPic()' }, { wrap: {} });
+            style = 'display:';
+            style += Subject.openSection === 'newpic' ? 'block;' : 'none;';
+            markup += Page.generateElement('div', newpicmarkup, { style: style });
             Page.render(markup);
         }
         static getThumbData(subjectid) {
@@ -800,6 +810,14 @@ var Page;
             let vid = Model.Vid.init(data);
             vid.store();
             Subject.render();
+        }
+        static onNewPic() {
+            let input = document.getElementById('newpic-url');
+            let url = input.value;
+            let pic = new Model.Picture(url);
+            pic.subjectid = Subject.id;
+            pic.store();
+            input.value = '';
         }
         static onSave() {
             let subject = Model.Subject.read(Subject.id);
