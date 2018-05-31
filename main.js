@@ -574,8 +574,18 @@ var Page;
             query['type'] = 'pic';
             Gallery.images = Model.Data.query(query);
             let markup = "";
+            if (Gallery.chooseSubjectThumb) {
+                let subject = Model.Subject.read(Subject.id);
+                markup += Page.generateElement('div', 'choose thumbnail for ' + subject.name);
+            }
             for (let image of Gallery.images) {
-                let onclick = 'Page.Page.showImage(' + image.id + ')';
+                let onclick;
+                if (Gallery.chooseSubjectThumb) {
+                    onclick = 'Page.Gallery.onChooseThumb(' + image.id + ')';
+                }
+                else {
+                    onclick = 'Page.Page.showImage(' + image.id + ')';
+                }
                 markup += Page.generateThumbnail(image, onclick);
             }
             Page.render(markup);
@@ -592,7 +602,15 @@ var Page;
                 }
             }
         }
+        static onChooseThumb(imageid) {
+            Gallery.chooseSubjectThumb = false;
+            let subject = Model.Subject.read(Subject.id);
+            subject.setThumb(imageid);
+            subject.store();
+            Page.showSubjectThumb();
+        }
     }
+    Gallery.chooseSubjectThumb = false;
     Page_1.Gallery = Gallery;
     class Image {
         static render(id) {
@@ -980,6 +998,26 @@ var Page;
     Subjects.alt = true;
     Page_1.Subjects = Subjects;
     class SubjectThumb {
+        static render() {
+            Page.pageName = Pages.Subjects;
+            SubjectThumb.subject = Model.Subject.read(Subject.id);
+            let imageObj = SubjectThumb.imageObject;
+            let markup = Page.generateElement('div', null, { id: 'workingBox' });
+            let resultBox = Page.generateElement('div', null, { id: 'resultBox' });
+            let buttons = Page.generateElement('button', 'UpperLeft', { onclick: 'Page.SubjectThumb.onBtnUpperLeft()' }, { wrap: {} });
+            buttons += Page.generateElement('button', 'LowerRight', { onclick: 'Page.SubjectThumb.onBtnLowerRight()' }, { wrap: {} });
+            buttons += Page.generateElement('button', 'ChangeImage', { onclick: 'Page.SubjectThumb.onBtnChangeImage()' }, { wrap: {} });
+            buttons += Page.generateElement('button', 'Apply', { onclick: 'Page.SubjectThumb.onBtnApply()' }, { wrap: {} });
+            buttons += Page.generateElement('button', 'Cancel', { onclick: 'Page.SubjectThumb.onBtnCancel()' }, { wrap: {} });
+            let style = `
+				padding:10px;position:fixed;top:35;right:10;
+				z-index:1;background-color:#555;
+			`;
+            markup += Page.generateElement('div', resultBox + buttons, { style: style });
+            Page.render(markup);
+            SubjectThumb.updateResult();
+            SubjectThumb.updateWorkingImage();
+        }
         static getImageId() {
             if (SubjectThumb.subject.hasOwnProperty('thumb')) {
                 if (typeof SubjectThumb.subject.thumb === 'number') {
@@ -998,25 +1036,6 @@ var Page;
                     return null;
                 }
             }
-        }
-        static render() {
-            Page.pageName = Pages.Subjects;
-            SubjectThumb.subject = Model.Subject.read(Subject.id);
-            let imageObj = SubjectThumb.imageObject;
-            let markup = Page.generateElement('div', null, { id: 'workingBox' });
-            let resultBox = Page.generateElement('div', null, { id: 'resultBox' });
-            let buttons = Page.generateElement('button', 'UpperLeft', { onclick: 'Page.SubjectThumb.onBtnUpperLeft()' }, { wrap: {} });
-            buttons += Page.generateElement('button', 'LowerRight', { onclick: 'Page.SubjectThumb.onBtnLowerRight()' }, { wrap: {} });
-            buttons += Page.generateElement('button', 'Apply', { onclick: 'Page.SubjectThumb.onBtnApply()' }, { wrap: {} });
-            buttons += Page.generateElement('button', 'Cancel', { onclick: 'Page.SubjectThumb.onBtnCancel()' }, { wrap: {} });
-            let style = `
-				padding:10px;position:fixed;top:35;right:10;
-				z-index:1;background-color:#555;
-			`;
-            markup += Page.generateElement('div', resultBox + buttons, { style: style });
-            Page.render(markup);
-            SubjectThumb.updateResult();
-            SubjectThumb.updateWorkingImage();
         }
         static get imageObject() {
             return Model.Picture.read(SubjectThumb.subject.thumb.imageId);
@@ -1081,6 +1100,10 @@ var Page;
         }
         static onBtnCancel() {
             Page.showSubject(Subject.id);
+        }
+        static onBtnChangeImage() {
+            Gallery.chooseSubjectThumb = true;
+            Page.showGallery({ subject: Subject.id });
         }
     }
     SubjectThumb.selectingul = false;
