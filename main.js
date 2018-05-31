@@ -310,7 +310,6 @@ var Page;
         static showSubject(id) { Subject.render(id); }
         static showGallery(query) { Gallery.render(query); }
         static showImage(id) { Image.render(id); }
-        // static showNewPic() { NewPic.render(); }
         static showNewSubject() { NewSubject.render(); }
         static showEditImage() { EditImage.render(); }
         static showConfirmRemoveSubject() { ConfirmRemoveSubject.render(); }
