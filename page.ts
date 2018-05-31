@@ -247,6 +247,7 @@ namespace Page {
 
 	export class EditImage {
 		static imageId: number;
+		
 		static render() {
 			Page.pageName = Pages.EditImage;
 			EditImage.imageId = Image.id;
